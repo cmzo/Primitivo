@@ -17,9 +17,20 @@
 ## Indice
 
 - [Descripción general](#descripción-general)
-- [Creación de personajes](#creación-de-personaje)
-- [Stats](#stats)
-- [Combate por turnos](#combate-por-turnos)
+- [Mecánicas principales](#mecánicas-principales)
+    - [Creación de personajes](#creación-de-personaje)
+    - [Stats](#stats)
+    - [Combate por turnos](#combate-por-turnos)
+- [Inventario](#inventario)
+- [Progresión](#progresión)
+- [Alcance](#alcance-v10)
+- [ULM](#ULM)
+- [Conceptos de POO aplicados](#conceptos-de-poo-aplicados)
+- [Tecnologías](#tecnologías)
+- [Estado del proyexto](#estado-del-proyecto)
+
+ 
+---
 
 ## Descripción general
 
