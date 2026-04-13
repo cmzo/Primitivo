@@ -14,6 +14,13 @@
 
 ```
 
+## Indice
+
+- [Descripción general](#descripción-general)
+- [Creación de personajes](#creación-de-personaje)
+- [Stats](#stats)
+- [Combate por turnos](#combate-por-turnos)
+
 ## Descripción general
 
 Primitivo es un RPG de consola en el que el jugador crea un personaje eligiendo su **raza** y su **clase**, y lo lleva a través de combates por turnos contra enemigos. El foco del juego está en la **gestión del personaje**: su inventario, sus stats, sus habilidades y cómo estos elementos interactúan entre sí durante el combate.
