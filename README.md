@@ -42,6 +42,17 @@ Cada personaje tiene los siguientes atributos base, modificados por raza y equip
 | `CON` (Constitution) | Puntos de vida máximos |
 | `WIS` (Wisdom) | Resistencia a efectos de estado |
 
+
+Cada raza reparte un total de +5 puntos entre sus bonos y -2 en penalizaciones. Así ninguna raza es objetivamente mejor que otra — solo diferente.
+
+| Stat | Human | Elf | Dwarf | Orc |
+|------|-------|-----|-------|-----|
+| STR  | +2    | -1  | +3    | +4  |
+| DEX  | +2    | +3  | -1    | +1  |
+| INT  | +1    | +2  | +1    | -2  |
+| CON  | +1    | -1  | +3    | +2  |
+| WIS  | +1    | +2  | +1    | -1  |
+
 ### Combate por turnos
 - El orden de turno se determina por `DEX + d20` (dado de 20 caras)
 - En su turno, el jugador puede: **atacar**, **usar una habilidad**, **usar un ítem** o **huir**
