@@ -246,9 +246,11 @@ classDiagram
 
 ## Tecnologías
 
-- Java (versión del curso)
-- Consola / Scanner para input
-- D&D 5e SRD API *(integración planeada para versión futura)*
+- Java 21.0.10 / Maven 3.9.14
+- Consola (Wezterm)/ Scanner para input
+- GIT / Github
+- VS Code
+- API: [D&D 5e SRD API](https://5e-bits.github.io/docs/)
 
 ---
 
