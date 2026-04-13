@@ -285,6 +285,6 @@ classDiagram
 
 ## Estado del proyecto
 
-Documentación inicial del proyecto - ✅ Completado
-Diseño de clases - 🚧 En desarrollo
+- Documentación inicial del proyecto / ✅ Completado
+- Diseño de clases / 🚧 En desarrollo
 
