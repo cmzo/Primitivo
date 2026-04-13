@@ -27,7 +27,7 @@
 - [ULM](#ULM)
 - [Conceptos de POO aplicados](#conceptos-de-poo-aplicados)
 - [Tecnologías](#tecnologías)
-- [Estado del proyexto](#estado-del-proyecto)
+- [Estado del proyecto](#estado-del-proyecto)
 
  
 ---
@@ -285,4 +285,6 @@ classDiagram
 
 ## Estado del proyecto
 
-🚧 En desarrollo — diseño de clases en curso.
+Documentación inicial del proyecto - ✅ Completado
+Diseño de clases - 🚧 En desarrollo
+
