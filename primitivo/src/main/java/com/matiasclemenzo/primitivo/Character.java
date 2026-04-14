@@ -1,4 +1,4 @@
-package com.matiasclemenzo;
+package com.matiasclemenzo.primitivo;
 
 abstract class Character {
     private String name;
@@ -30,6 +30,6 @@ abstract class Character {
 
     public void levelUp() {
         level ++;
-//         stats.applyModifier(...)
+        stats.applyModifier(...)
     }
 }
