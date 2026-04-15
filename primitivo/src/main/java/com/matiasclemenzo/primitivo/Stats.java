@@ -1,5 +1,10 @@
 package com.matiasclemenzo.primitivo;
 
+/**
+ * Representa los atributos base de un personaje.
+ * Permite consultar y modificar cada stat individualmente.
+ */
+
 public class Stats {
     private int strength;
     private int dexterity;
@@ -15,6 +20,11 @@ public class Stats {
         this.wisdom = wisdom;
     }
 
+    /**
+     * Muestra el valor del stat ingresado
+     * @param stat el nombre del stat a consultar (ej: "strength", "dexterity")
+     * @return el valor del stat, o -1 si el stat no existe
+     */
     public int getModifier(String stat) {
         switch (stat) {
             case "strength": return strength;
@@ -28,6 +38,11 @@ public class Stats {
         }
     }
 
+    /**
+     * Modifica el valor del stat ingresado
+     * @param stat el nombre del stat a modificar (ej: "strength", "dexterity")
+     * @param value la cantidad en que el stat va a incrementarse o decrementarse 
+     */
     public void applyModifier(String stat, int value) {
         switch (stat) {
             case "strength": strength += value; break;
