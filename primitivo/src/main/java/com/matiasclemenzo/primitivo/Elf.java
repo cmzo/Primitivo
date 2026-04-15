@@ -10,8 +10,8 @@ public class Elf extends Race {
     public void applyModifiers(Stats stats) {
         stats.applyModifier("strength", -1);
         stats.applyModifier("dexterity", 3);
-        stats.applyModifier("intelligence", 2);
+        stats.applyModifier("intelligence", 3);
         stats.applyModifier("constitution", -1);
-        stats.applyModifier("wisdom", 2);
+        stats.applyModifier("wisdom", 3);
     }
 }

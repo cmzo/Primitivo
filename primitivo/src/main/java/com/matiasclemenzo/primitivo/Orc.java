@@ -8,10 +8,10 @@ public class Orc extends Race {
 
     @Override
     public void applyModifiers(Stats stats) {
-        stats.applyModifier("strength", 4);
+        stats.applyModifier("strength", 5);
         stats.applyModifier("dexterity", 1);
         stats.applyModifier("intelligence", -2);
         stats.applyModifier("constitution", 2);
-        stats.applyModifier("wisdom", -1);
+        stats.applyModifier("wisdom", 1);
     }
 }
