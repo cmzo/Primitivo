@@ -28,16 +28,15 @@ public class Stats {
         }
     }
 
-
     public void applyModifier(String stat, int value) {
-    switch (stat) {
-        case "strength": strength += value; break;
-        case "dexterity": dexterity += value; break;
-        case "intelligence": intelligence += value; break;
-        case "constitution": constitution += value; break;
-        case "wisdom": wisdom += value; break;
-        default:
-            System.out.println("El stat ingresado no existe");
+        switch (stat) {
+            case "strength": strength += value; break;
+            case "dexterity": dexterity += value; break;
+            case "intelligence": intelligence += value; break;
+            case "constitution": constitution += value; break;
+            case "wisdom": wisdom += value; break;
+            default:
+                System.out.println("El stat ingresado no existe");
     }
 }
 

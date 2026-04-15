@@ -287,4 +287,5 @@ classDiagram
 
 - Documentación inicial del proyecto / ✅ Completado
 - Diseño de clases / 🚧 En desarrollo
+- Creación de clases / 🚧 En desarrollo
 

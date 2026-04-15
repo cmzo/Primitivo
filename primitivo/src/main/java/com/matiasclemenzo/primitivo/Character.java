@@ -30,6 +30,6 @@ abstract class Character {
 
     public void levelUp() {
         level ++;
-        stats.applyModifier(...)
+        charClass.levelUp(stats);
     }
 }
