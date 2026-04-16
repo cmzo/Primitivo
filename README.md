@@ -297,8 +297,8 @@ classDiagram
 | 7 | `Inventory` | Gestión de ítems y equipamiento | ✅ Completado |
 | 8 | `CharacterClass` | Clase abstracta con habilidades y levelUp | ✅ Completado |
 | 9 | `Character` | Clase principal del personaje | ✅ Completado |
-| 10 | `Skill` | Habilidades con `activate()` e `isAvailable()` | 🚧 En progreso |
-| 11 | `Enemy` | Clase con IA simple y loot | ⏳ Pendiente |
+| 10 | `Skill` | Habilidades con `activate()` e `isAvailable()` | ✅ Completado |
+| 11 | `Enemy` | Clase con IA simple y loot |  ✅ Completado |
 | 12 | `Fighter`, `Wizard`, `Rogue`, `Healer`, `Ranger` | Subclases de `CharacterClass` | ⏳ Pendiente |
 | 13 | `BattleSystem` | Lógica de combate por turnos | ⏳ Pendiente |
 | 14 | Scanner / UI | Creación de personaje por consola | ⏳ Pendiente |
