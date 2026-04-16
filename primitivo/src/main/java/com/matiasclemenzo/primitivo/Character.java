@@ -28,6 +28,10 @@ abstract class Character {
     hp = hp - damage;
     }
 
+    public void heal(int amount) {
+        hp += amount;
+    }
+
     public void levelUp() {
         level ++;
         charClass.levelUp(stats);
