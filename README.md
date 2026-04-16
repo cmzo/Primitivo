@@ -284,9 +284,25 @@ classDiagram
 
 ---
 
-## Estado del proyecto
+## Cronograma
 
-- Documentación inicial del proyecto / ✅ Completado
-- Diseño de clases / 🚧 En desarrollo
-- Creación de clases / 🚧 En desarrollo
-- Documentación con Javadoc / 🚧 En desarrollo
+| # | Tarea | Descripción | Estado |
+|---|-------|-------------|--------|
+| 1 | Documentación inicial | README, UML y diseño de clases | ✅ Completado |
+| 2 | `Stats` | Atributos base y modificadores | ✅ Completado |
+| 3 | `Race` | Clase abstracta base | ✅ Completado |
+| 4 | `Human`, `Elf`, `Dwarf`, `Orc` | Subclases de `Race` con modificadores | ✅ Completado |
+| 5 | `Item` | Clase abstracta base de ítems | ✅ Completado |
+| 6 | `Weapon`, `Armor`, `Potion` | Subclases de `Item` | ✅ Completado |
+| 7 | `Inventory` | Gestión de ítems y equipamiento | ✅ Completado |
+| 8 | `CharacterClass` | Clase abstracta con habilidades y levelUp | ✅ Completado |
+| 9 | `Character` | Clase principal del personaje | ✅ Completado |
+| 10 | `Skill` | Habilidades con `activate()` e `isAvailable()` | 🚧 En progreso |
+| 11 | `Enemy` | Clase con IA simple y loot | ⏳ Pendiente |
+| 12 | `Fighter`, `Wizard`, `Rogue`, `Healer`, `Ranger` | Subclases de `CharacterClass` | ⏳ Pendiente |
+| 13 | `BattleSystem` | Lógica de combate por turnos | ⏳ Pendiente |
+| 14 | Scanner / UI | Creación de personaje por consola | ⏳ Pendiente |
+| 15 | Integración | Conectar todas las clases y probar flujo completo | ⏳ Pendiente |
+| 16 | Javadoc | Documentar todas las clases | 🚧 En progreso |
+| 17 | Testing | Pruebas básicas de las clases principales | ⏳ Pendiente |
+
