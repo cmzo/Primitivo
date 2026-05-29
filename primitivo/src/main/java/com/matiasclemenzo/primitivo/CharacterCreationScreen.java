@@ -11,7 +11,6 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.TimeUtils;
-import java.util.ArrayList;
 
 public class CharacterCreationScreen implements Screen {
 
@@ -64,7 +63,7 @@ public class CharacterCreationScreen implements Screen {
         camera.setToOrtho(false, SCREEN_W, SCREEN_H);
         batch  = new SpriteBatch();
         shapes = new ShapeRenderer();
-        font   = new BitmapFont();
+        font   = Fonts.build(16);
     }
 
     @Override
@@ -125,10 +124,8 @@ public class CharacterCreationScreen implements Screen {
             case 4:  charClass = new Ranger();  break;
             default: charClass = new Fighter(); break;
         }
-        Player player      = new Player(nameBuffer.toString().trim(), RACES[selectedRace], charClass);
-        Stats  goblinStats = new Stats(8, 6, 3, 8, 4);
-        Enemy  goblin      = new Enemy("Goblin", 40, new ArrayList<>(), 15, goblinStats);
-        game.setScreen(new BattleScreen(player, goblin));
+        Player player = new Player(nameBuffer.toString().trim(), RACES[selectedRace], charClass);
+        game.setScreen(new OverworldScreen(game, player));
     }
 
     // ── Drawing ──────────────────────────────────────────────────────────

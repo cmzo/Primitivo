@@ -36,6 +36,17 @@
       <version>1.12.1</version>
       <classifier>natives-desktop</classifier>
     </dependency>
+    <dependency>
+      <groupId>com.badlogicgames.gdx</groupId>
+      <artifactId>gdx-freetype</artifactId>
+      <version>1.12.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.badlogicgames.gdx</groupId>
+      <artifactId>gdx-freetype-platform</artifactId>
+      <version>1.12.1</version>
+      <classifier>natives-desktop</classifier>
+    </dependency>
   </dependencies>
 
   <build>
@@ -46,6 +57,7 @@
         <version>3.1.0</version>
         <configuration>
           <executable>java</executable>
+          <workingDirectory>${project.basedir}/assets</workingDirectory>
           <arguments>
             <argument>-XstartOnFirstThread</argument>
             <argument>-classpath</argument>

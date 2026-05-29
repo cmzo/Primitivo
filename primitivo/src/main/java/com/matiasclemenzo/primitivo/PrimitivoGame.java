@@ -6,6 +6,11 @@ public class PrimitivoGame extends Game {
 
     @Override
     public void create() {
-        setScreen(new CharacterCreationScreen(this));
+        if (SaveManager.hasSave()) {
+            SaveManager.SaveData data = SaveManager.load();
+            setScreen(new OverworldScreen(this, data.player, data.col, data.row));
+        } else {
+            setScreen(new CharacterCreationScreen(this));
+        }
     }
 }

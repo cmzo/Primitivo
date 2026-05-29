@@ -9,6 +9,8 @@ abstract class Race {
         this.description = description;
     }
 
+    public String getName() { return name; }
+
     public void applyModifiers(Stats stats){
 
     }

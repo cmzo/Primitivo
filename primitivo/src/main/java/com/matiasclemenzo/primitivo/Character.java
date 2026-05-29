@@ -25,7 +25,8 @@ abstract class Character {
         this.inventory = inventory;
     }
 
-    public String getName() { return name; }
+    public String getName()     { return name; }
+    public String getRaceName() { return race.getName(); }
     public int getLevel() { return level; }
     public int getHp() { return hp; }
     public int getMaxHp() { return maxHp; }
@@ -40,11 +41,15 @@ abstract class Character {
     }
 
     public void takeDamage(int damage) {
-        hp -= damage;
+        hp = Math.max(0, hp - damage);
     }
 
     public void heal(int amount) {
         hp = Math.min(maxHp, hp + amount);
+    }
+
+    public void setHp(int value) {
+        hp = Math.max(0, Math.min(maxHp, value));
     }
 
     public List<Skill> getAvailableSkills() {
@@ -58,5 +63,18 @@ abstract class Character {
     public void levelUp() {
         level++;
         charClass.levelUp(stats);
+        maxHp += Math.max(5, stats.getModifier("constitution") / 2);
+        hp = maxHp;
+    }
+
+    public boolean gainXp(int amount) {
+        xp += amount;
+        boolean leveled = false;
+        while (xp >= getXpToNextLevel()) {
+            xp -= getXpToNextLevel();
+            levelUp();
+            leveled = true;
+        }
+        return leveled;
     }
 }
