@@ -103,3 +103,6 @@ buildNumber.properties
 .env
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode,maven,java
+
+# Frames crudos del elfo (sin usar por ahora; tal vez se borren mas adelante)
+primitivo/assets/sprites/characters/elf/
