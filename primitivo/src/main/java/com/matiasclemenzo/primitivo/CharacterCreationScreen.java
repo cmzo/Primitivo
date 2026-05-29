@@ -81,6 +81,8 @@ public class CharacterCreationScreen implements Screen {
                 handleNameInput();
                 if (Gdx.input.isKeyJustPressed(Keys.ENTER) && nameBuffer.length() > 0)
                     step = Step.RACE;
+                if (Gdx.input.isKeyJustPressed(Keys.ESCAPE))
+                    Gdx.app.exit();
                 break;
 
             case RACE:

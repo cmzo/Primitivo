@@ -27,7 +27,7 @@ public class BattleScreen implements Screen {
 
     private static final String[] ACTIONS = { "Atacar", "Habilidad", "Ítem", "Huir" };
 
-    private enum BattleState { PLAYER_MENU, SKILL_MENU, AFTER_PLAYER_ACTION, BATTLE_END }
+    private enum BattleState { PLAYER_MENU, SKILL_MENU, AFTER_PLAYER_ACTION, BATTLE_END, PAUSED }
 
     private final Player player;
     private final Enemy  enemy;
@@ -38,8 +38,9 @@ public class BattleScreen implements Screen {
     private BitmapFont         font;
 
     private BattleState state = BattleState.PLAYER_MENU;
-    private int selectedAction = 0;
-    private int selectedSkill  = 0;
+    private int selectedAction      = 0;
+    private int selectedSkill       = 0;
+    private int selectedPauseOption = 0;  // 0=continuar, 1=salir
     private String message;
 
     public BattleScreen(Player player, Enemy enemy) {
@@ -71,11 +72,25 @@ public class BattleScreen implements Screen {
     private void handleInput() {
         switch (state) {
             case PLAYER_MENU:
-                if (Gdx.input.isKeyJustPressed(Keys.LEFT)  && selectedAction % 2 == 1) selectedAction--;
-                if (Gdx.input.isKeyJustPressed(Keys.RIGHT) && selectedAction % 2 == 0) selectedAction++;
-                if (Gdx.input.isKeyJustPressed(Keys.UP)    && selectedAction >= 2)     selectedAction -= 2;
-                if (Gdx.input.isKeyJustPressed(Keys.DOWN)  && selectedAction < 2)      selectedAction += 2;
+                if (Gdx.input.isKeyJustPressed(Keys.LEFT)   && selectedAction % 2 == 1) selectedAction--;
+                if (Gdx.input.isKeyJustPressed(Keys.RIGHT)  && selectedAction % 2 == 0) selectedAction++;
+                if (Gdx.input.isKeyJustPressed(Keys.UP)     && selectedAction >= 2)     selectedAction -= 2;
+                if (Gdx.input.isKeyJustPressed(Keys.DOWN)   && selectedAction < 2)      selectedAction += 2;
                 if (Gdx.input.isKeyJustPressed(Keys.ENTER)) executePlayerAction();
+                if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
+                    selectedPauseOption = 0;
+                    state = BattleState.PAUSED;
+                }
+                break;
+
+            case PAUSED:
+                if (Gdx.input.isKeyJustPressed(Keys.UP))   selectedPauseOption = 0;
+                if (Gdx.input.isKeyJustPressed(Keys.DOWN)) selectedPauseOption = 1;
+                if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) state = BattleState.PLAYER_MENU;
+                if (Gdx.input.isKeyJustPressed(Keys.ENTER)) {
+                    if (selectedPauseOption == 0) state = BattleState.PLAYER_MENU;
+                    else                          Gdx.app.exit();
+                }
                 break;
 
             case SKILL_MENU:
@@ -169,6 +184,49 @@ public class BattleScreen implements Screen {
         drawBattleField();
         drawMenuArea();
         drawSidePanel();
+
+        if (state == BattleState.PAUSED) drawPauseOverlay();
+    }
+
+    private void drawPauseOverlay() {
+        // Semi-transparent backdrop over the game area only
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0f, 0f, 0f, 0.65f);
+        shapes.rect(0, 0, W, H);
+        shapes.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        // Modal box
+        int bx = W / 2 - 130;
+        int by = H / 2 - 80;
+        int bw = 260;
+        int bh = 160;
+
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.08f, 0.08f, 0.14f, 1);
+        shapes.rect(bx, by, bw, bh);
+        shapes.setColor(0.35f, 0.35f, 0.60f, 1);
+        shapes.rect(bx,          by + bh - 2, bw, 2);
+        shapes.rect(bx,          by,          bw, 2);
+        shapes.rect(bx,          by,          2,  bh);
+        shapes.rect(bx + bw - 2, by,          2,  bh);
+        shapes.end();
+
+        batch.begin();
+        font.setColor(new Color(0.85f, 0.85f, 1.0f, 1));
+        font.draw(batch, "PAUSA", 0, by + bh - 18, W, Align.center, false);
+
+        String[] opts = { "Continuar", "Salir del juego" };
+        for (int i = 0; i < opts.length; i++) {
+            boolean sel = (i == selectedPauseOption);
+            font.setColor(sel ? Color.WHITE : Color.GRAY);
+            font.draw(batch, (sel ? "> " : "  ") + opts[i], 0, by + bh - 58 - i * 36, W, Align.center, false);
+        }
+        font.setColor(new Color(0.40f, 0.40f, 0.60f, 1));
+        font.draw(batch, "ESC para volver", 0, by + 20, W, Align.center, false);
+        batch.end();
     }
 
     private void drawBattleField() {
