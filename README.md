@@ -34,9 +34,9 @@
 
 ## Descripción general
 
-Primitivo es un RPG de consola en el que el jugador crea un personaje eligiendo su **raza** y su **clase**, y lo lleva a través de combates por turnos contra enemigos. El foco del juego está en la **gestión del personaje**: su inventario, sus stats, sus habilidades y cómo estos elementos interactúan entre sí durante el combate.
+Primitivo es un RPG de estética **pixel art estilo Game Boy Advance**, construido con LibGDX, en el que el jugador crea un personaje eligiendo su **raza** y su **clase**, y lo lleva a través de combates por turnos contra enemigos. El foco del juego está en la **gestión del personaje**: su inventario, sus stats, sus habilidades y cómo estos elementos interactúan entre sí durante el combate.
 
-No tiene interfaz gráfica. Toda la interacción es a través de texto en consola.
+La interfaz es completamente gráfica (desktop, 1280×720). Incluye una pantalla de creación de personaje y una pantalla de batalla con panel lateral persistente que muestra stats, equipamiento e inventario en tiempo real.
 
 ---
 
@@ -276,11 +276,10 @@ classDiagram
 
 ## Tecnologías
 
-- Java 21.0.10 / Maven 3.9.14
-- Consola (Wezterm)/ Scanner para input
+- Java 21 / Maven 3.9
+- LibGDX 1.12.1 / LWJGL3 (interfaz gráfica desktop)
 - GIT / Github
-- VS Code
-- API: [D&D 5e SRD API](https://5e-bits.github.io/docs/)
+- VS Code / Claude Code
 
 ---
 
@@ -298,11 +297,14 @@ classDiagram
 | 8 | `CharacterClass` | Clase abstracta con habilidades y levelUp | ✅ Completado |
 | 9 | `Character` | Clase principal del personaje | ✅ Completado |
 | 10 | `Skill` | Habilidades con `activate()` e `isAvailable()` | ✅ Completado |
-| 11 | `Enemy` | Clase con IA simple y loot |  ✅ Completado |
-| 12 | `Fighter`, `Wizard`, `Rogue`, `Healer`, `Ranger` | Subclases de `CharacterClass` | ⏳ Pendiente |
-| 13 | `BattleSystem` | Lógica de combate por turnos | ⏳ Pendiente |
-| 14 | Scanner / UI | Creación de personaje por consola | ⏳ Pendiente |
-| 15 | Integración | Conectar todas las clases y probar flujo completo | ⏳ Pendiente |
-| 16 | Javadoc | Documentar todas las clases | 🚧 En progreso |
-| 17 | Testing | Pruebas básicas de las clases principales | ⏳ Pendiente |
+| 11 | `Enemy` | Clase con IA simple y loot | ✅ Completado |
+| 12 | `Fighter`, `Wizard`, `Rogue`, `Healer`, `Ranger` | Subclases de `CharacterClass` con 2 habilidades cada una | ✅ Completado |
+| 13 | LibGDX | Integración gráfica desktop (LWJGL3, ventana 1280×720) | ✅ Completado |
+| 14 | `BattleScreen` | Pantalla de batalla con menú, panel lateral y máquina de estados | ✅ Completado |
+| 15 | `CharacterCreationScreen` | Pantalla de creación: nombre, raza, clase con preview en tiempo real | ✅ Completado |
+| 16 | `OverworldScreen` | Mapa con movimiento celda a celda (estilo GBA) y encuentros aleatorios | ⏳ Pendiente |
+| 17 | Sistema de loot | Drop de ítems aleatorios al derrotar enemigos | ⏳ Pendiente |
+| 18 | Progresión | XP, subida de nivel y desbloqueo de habilidades | ⏳ Pendiente |
+| 19 | Javadoc | Documentar todas las clases | 🚧 En progreso |
+| 20 | Testing | Pruebas básicas de las clases principales | ⏳ Pendiente |
 

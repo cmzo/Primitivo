@@ -22,6 +22,8 @@ abstract class CharacterClass {
 
     }
 
+    public String getClassName() { return className; }
+
     public List<Skill> getAvailableSkills() {
         return skills;
     }

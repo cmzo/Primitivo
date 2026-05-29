@@ -1,39 +1,62 @@
 package com.matiasclemenzo.primitivo;
 
+import java.util.List;
+
 abstract class Character {
     private String name;
     private int level;
     private int hp;
+    private int maxHp;
     private int xp;
     private Race race;
     private CharacterClass charClass;
     private Inventory inventory;
     private Stats stats;
 
-    public Character(String name, int level, int hp, int xp) {
+    public Character(String name, int level, int hp, int xp, Stats stats, Race race, CharacterClass charClass, Inventory inventory) {
         this.name = name;
         this.level = level;
         this.hp = hp;
+        this.maxHp = hp;
         this.xp = xp;
+        this.stats = stats;
+        this.race = race;
+        this.charClass = charClass;
+        this.inventory = inventory;
     }
 
-    public int getHp() {return hp; }
-    public int getXp() {return xp; }
+    public String getName() { return name; }
+    public int getLevel() { return level; }
+    public int getHp() { return hp; }
+    public int getMaxHp() { return maxHp; }
+    public int getXp() { return xp; }
+    public int getXpToNextLevel() { return level * 100; }
+    public Stats getStats() { return stats; }
+    public String getClassName() { return charClass.getClassName(); }
+    public List<Item> getInventoryItems() { return inventory.getItems(); }
 
     public boolean isAlive() {
         return hp > 0;
     }
 
     public void takeDamage(int damage) {
-    hp = hp - damage;
+        hp -= damage;
     }
 
     public void heal(int amount) {
-        hp += amount;
+        hp = Math.min(maxHp, hp + amount);
+    }
+
+    public List<Skill> getAvailableSkills() {
+        return charClass.getAvailableSkills();
+    }
+
+    public String useSkill(Skill skill, Enemy enemy) {
+        return skill.activate(this, enemy);
     }
 
     public void levelUp() {
-        level ++;
+        level++;
         charClass.levelUp(stats);
     }
 }

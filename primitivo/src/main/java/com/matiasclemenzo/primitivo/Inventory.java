@@ -50,10 +50,12 @@ public class Inventory {
         }
 }
 
+    public List<Item> getItems() { return items; }
+
     public void listItems() {
         for (Item item : items) {
             System.out.println(item.getName());
         }
-}
+    }
 }
 

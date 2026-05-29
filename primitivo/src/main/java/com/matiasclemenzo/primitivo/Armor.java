@@ -1,9 +1,9 @@
 package com.matiasclemenzo.primitivo;
 
-public class Armor {
+public class Armor extends Item {
     private int defenseBonus;
 
-    public Weapon(String name, String description, int value, int defenseBonus) {
+    public Armor(String name, String description, int value, int defenseBonus) {
         super(name, description, value);
         this.defenseBonus = defenseBonus;
     }
