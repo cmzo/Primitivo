@@ -52,9 +52,10 @@ public class BattleScreen implements Screen {
     private int     selectedSkill       = 0;
     private int     selectedPauseOption = 0;
     private String  message;
-    private int     gainedXp  = 0;
-    private boolean leveledUp = false;
-    private boolean fled      = false;
+    private int        gainedXp  = 0;
+    private boolean    leveledUp = false;
+    private boolean    fled      = false;
+    private List<Item> droppedLoot;
 
     public BattleScreen(PrimitivoGame game, Player player, Enemy enemy, Screen returnScreen) {
         this.game         = game;
@@ -140,6 +141,11 @@ public class BattleScreen implements Screen {
                         int xp = enemy.getMaxHp() / 2 + 5;
                         gainedXp  = xp;
                         leveledUp = player.gainXp(xp);
+                        droppedLoot = enemy.dropLoot();
+                        for (Item it : droppedLoot) {
+                            player.addItem(it);
+                            ItemIcons.get(it.getIconIndex());  // precargá el ícono fuera del batch
+                        }
                         message = "¡Ganaste! " + enemy.getName() + " fue derrotado.";
                         state = BattleState.BATTLE_END;
                     } else {
@@ -249,17 +255,26 @@ public class BattleScreen implements Screen {
             fontLg.draw(batch, "¡Victoria!", 0, H / 2f + 90, W, Align.center, false);
 
             fontLg.setColor(new Color(0.75f, 0.88f, 0.50f, 1));
-            fontLg.draw(batch, enemy.getName() + " fue derrotado.", 0, H / 2f + 40, W, Align.center, false);
+            fontLg.draw(batch, enemy.getName() + " fue derrotado.", 0, H / 2f + 45, W, Align.center, false);
 
+            if (droppedLoot != null && !droppedLoot.isEmpty()) {
+                StringBuilder names = new StringBuilder();
+                for (Item it : droppedLoot) {
+                    if (names.length() > 0) names.append(",  ");
+                    names.append(it.getName());
+                }
+                font.setColor(new Color(1.0f, 0.82f, 0.35f, 1));
+                font.draw(batch, "Botin:  " + names, 0, H / 2f, W, Align.center, false);
+            }
             if (gainedXp > 0) {
                 font.setColor(new Color(0.55f, 0.90f, 0.55f, 1));
-                font.draw(batch, "+ " + gainedXp + " XP", 0, H / 2f - 10, W, Align.center, false);
+                font.draw(batch, "+ " + gainedXp + " XP", 0, H / 2f - 35, W, Align.center, false);
             }
             if (leveledUp) {
                 fontLg.setColor(new Color(1.0f, 0.85f, 0.20f, 1));
-                fontLg.draw(batch, "¡SUBISTE DE NIVEL!", 0, H / 2f - 60, W, Align.center, false);
+                fontLg.draw(batch, "¡SUBISTE DE NIVEL!", 0, H / 2f - 75, W, Align.center, false);
                 font.setColor(new Color(0.92f, 0.75f, 0.15f, 1));
-                font.draw(batch, "Nivel " + player.getLevel(), 0, H / 2f - 100, W, Align.center, false);
+                font.draw(batch, "Nivel " + player.getLevel(), 0, H / 2f - 110, W, Align.center, false);
             }
         } else if (fled) {
             fontLg.setColor(new Color(0.75f, 0.88f, 1.0f, 1));

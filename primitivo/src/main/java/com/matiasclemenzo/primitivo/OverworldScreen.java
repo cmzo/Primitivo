@@ -638,7 +638,27 @@ public class OverworldScreen implements Screen {
              5 + lvl     + (int)(Math.random() * 4),
              3           + (int)(Math.random() * 3)
         );
-        return new Enemy(name, hp, new ArrayList<>(), dmg, s);
+        return new Enemy(name, hp, rollLoot(lvl), dmg, s);
+    }
+
+    // Tabla de drops simple por nivel: la mayoría suelta una poción, a veces
+    // un arma/armadura, y rara vez nada. (El loot con lore va en cofres.)
+    private List<Item> rollLoot(int lvl) {
+        List<Item> loot = new ArrayList<>();
+        double r = Math.random();
+        if (r < 0.50) {
+            loot.add(new Potion("Pocion", "Restaura HP.", 5, 15 + lvl * 5));
+        } else if (r < 0.78) {
+            int atk = 1 + lvl + (int) (Math.random() * 3);
+            loot.add(new Weapon("Espada gastada", "Botin de un enemigo.", 10 + lvl * 5, atk, "cortante"));
+        } else if (r < 0.92) {
+            int def = 1 + lvl + (int) (Math.random() * 2);
+            loot.add(new Armor("Coraza abollada", "Botin de un enemigo.", 8 + lvl * 4, def));
+        }
+        // resto (~8%): no suelta nada
+        if (Math.random() < 0.20)  // bonus ocasional
+            loot.add(new Potion("Pocion menor", "Restaura HP.", 5, 15));
+        return loot;
     }
 
     // ── Drawing ───────────────────────────────────────────────────────────
