@@ -70,35 +70,36 @@
 - [x] **`TileMap` + mapa externo** — el mapa se carga desde `assets/maps/overworld.txt` (grilla de letras, dígitos 0-4 o ints separados por coma; `#`=comentarios). Editar y relanzar sin recompilar Java
 - [ ] *(Fase D pendiente)* Tiled (`.tmx`) + tileset PNG real con capas de colisión/objetos
 
----
+### Fase 6 — Pantalla de título, animaciones y pulido
+- [x] **`TitleScreen`** — menú principal (Nueva partida / Cargar / Opciones / Salir) con título, confirmación al sobrescribir el slot rápido, selector de slots para cargar y placeholder de opciones
+- [x] **Routing** — `PrimitivoGame.create()` arranca en el título; ESC en el paso NOMBRE de la creación vuelve al título en vez de cerrar el juego
+- [x] **Animación caminar/correr** — el overworld animaba congelado (reset por paso). Ahora caminata continua; **Shift** corre (`run.png`, paso más corto); quieto muestra idle (mismo sprite del panel)
+- [x] **Fix layout de creación de personaje** — deltas de stats, "HP estimado" y el borde RAZA/CLASE se solapaban con la fuente de 16px; reespaciado completo
 
-## Próximo
-
-### Pantalla de inicio / menú principal
-> **Problema actual:** el juego entra directo. `PrimitivoGame.create()` va a
-> `OverworldScreen` si hay save o a `CharacterCreationScreen` si no — no hay forma
-> de elegir empezar una partida nueva cuando ya existe un guardado.
-- [ ] **Pantalla de título** al arrancar con el nombre del juego (Primitivo) y un menú
-- [ ] **Nueva partida** — siempre disponible; lleva a `CharacterCreationScreen` (avisar/confirmar si va a pisar un save existente, o usar otro slot)
-- [ ] **Cargar partida** — abrir el selector de slots (reutilizar el overlay `:load` de OverworldScreen)
-- [ ] **Opciones** — placeholder (audio, controles…) para más adelante
-- [ ] **Salir** — `Gdx.app.exit()`
-- [ ] Enrutar `PrimitivoGame.create()` a esta pantalla en vez de saltar directo al juego
+### Fase 7 — Assets incorporados (pendientes de usar)
+- [x] **`assets/items/`** — 1244 íconos 16×16 (`item1.png`…`item1244.png`) para inventario/loot
+- [x] **`assets/tiles/overworld/`** — tilesets de terreno 16×16: `grass.png`, `plains.png` (6×12), `water-sheet.png` (agua animada), `fences.png`, `decor_16x16.png`, `floors/`, `walls/` (+ puertas)
 
 ### Battle screen visual
 - [ ] Sprites de enemigos en batalla (al menos 3-4 tipos básicos)
 - [ ] Animaciones de ataque/defensa/habilidad
 - [ ] Mejor layout de la batalla — enemigo a la izquierda, jugador a la derecha, acciones abajo
 
-### Mejoras del mapa
-- [ ] Más variedad de tiles (camino de piedra, suelo de tierra, agua animada)
+### Tileset PNG en el mapa  ← PRÓXIMO CANDIDATO
+- [ ] Reemplazar los rectángulos de `ShapeRenderer` por tiles PNG de `tiles/overworld/` (16×16 dibujados a 2× = 32px, filtro nearest)
+- [ ] Mapear cada tipo de tile a una región: GRASS→`grass.png`/`plains.png`, PATH→tierra/camino de `plains.png`, WATER→`water-sheet.png` (animada)
+- [ ] Posada con `walls/` + `floors/` + puertas en lugar del dibujo actual
+- [ ] (Opcional) autotiling de bordes para transiciones limpias hierba/camino/agua
 - [ ] Zonas con encuentros de mayor nivel alejadas del punto de inicio
-- [ ] Tileset propio en lugar de ShapeRenderer simples
 
-### Contenido de progresión
-- [ ] Pantalla de looteo post-batalla — ítems dropeados al derrotar enemigos
-- [ ] Inventario interactivo (tecla I o Tab) — ver, equipar, descartar ítems
-- [ ] Equipamiento funcional — aplicar stats de Weapon/Armor al daño/defensa
+### Inventario y looteo  ← IMPORTANTE
+> Assets listos: `assets/items/` (1244 íconos 16×16). Falta asociar `Item` ↔ ícono.
+- [ ] Asignar un ícono (índice de `item###.png`) a cada `Item` (Weapon/Armor/Potion)
+- [ ] **Inventario interactivo** — pantalla/overlay (tecla I o Tab) para ver, equipar y descartar; preview de stats y comparación con lo equipado
+- [ ] Dibujar los íconos en los slots del panel (`InventoryBox`) y de equipamiento (`EquipBox`)
+- [ ] **Pantalla de looteo post-batalla** — ítems dropeados al derrotar un enemigo; el jugador elige qué tomar
+- [ ] Tabla de drops por enemigo / nivel
+- [ ] Equipamiento funcional — aplicar stats de Weapon/Armor al daño/defensa en batalla
 - [ ] Curva de dificultad — enemigos por zona, no solo por nivel del jugador
 
 ---

@@ -81,7 +81,7 @@ public class CharacterCreationScreen implements Screen {
                 if (Gdx.input.isKeyJustPressed(Keys.ENTER) && nameBuffer.length() > 0)
                     step = Step.RACE;
                 if (Gdx.input.isKeyJustPressed(Keys.ESCAPE))
-                    Gdx.app.exit();
+                    game.setScreen(new TitleScreen(game));
                 break;
 
             case RACE:
@@ -158,18 +158,18 @@ public class CharacterCreationScreen implements Screen {
 
         // Section dividers
         shapes.setColor(0.15f, 0.15f, 0.28f, 1);
-        shapes.rect(8, 575, SPLIT - 16, 1);
+        shapes.rect(8, 600, SPLIT - 16, 1);
         shapes.rect(8, 440, SPLIT - 16, 1);
-        shapes.rect(8, 55,  SPLIT - 16, 1);
+        shapes.rect(8, 50,  SPLIT - 16, 1);
 
         // Name input box
         Color border = (step == Step.NAME)
                 ? new Color(0.35f, 0.35f, 0.65f, 1)
                 : new Color(0.18f, 0.18f, 0.30f, 1);
         shapes.setColor(border);
-        shapes.rect(18, 614, SPLIT - 36, 34);
+        shapes.rect(18, 616, SPLIT - 36, 36);
         shapes.setColor(0.06f, 0.06f, 0.10f, 1);
-        shapes.rect(20, 616, SPLIT - 40, 30);
+        shapes.rect(20, 618, SPLIT - 40, 32);
 
         shapes.end();
 
@@ -177,27 +177,27 @@ public class CharacterCreationScreen implements Screen {
 
         // Title
         font.setColor(new Color(0.85f, 0.85f, 1.0f, 1));
-        font.draw(batch, "CREAR PERSONAJE", 0, 708, SPLIT, Align.center, false);
+        font.draw(batch, "CREAR PERSONAJE", 0, 700, SPLIT, Align.center, false);
 
         // ── 1. Nombre ──
-        drawSectionLabel("1. NOMBRE", 18, 660, step == Step.NAME);
+        drawSectionLabel("1. NOMBRE", 18, 664, step == Step.NAME);
         boolean blink = (TimeUtils.millis() / 500) % 2 == 0;
         font.setColor(Color.WHITE);
-        font.draw(batch, nameBuffer + (step == Step.NAME && blink ? "_" : ""), 28, 636);
+        font.draw(batch, nameBuffer + (step == Step.NAME && blink ? "_" : ""), 28, 641);
 
         // ── 2. Raza ──
-        drawSectionLabel("2. RAZA", 18, 562, step == Step.RACE);
+        drawSectionLabel("2. RAZA", 18, 580, step == Step.RACE);
         for (int i = 0; i < RACE_LABELS.length; i++) {
             boolean isSel  = (i == selectedRace);
             boolean active = (step == Step.RACE && isSel);
             if (active)      font.setColor(Color.WHITE);
             else if (isSel)  font.setColor(new Color(0.72f, 0.72f, 0.95f, 1));
             else             font.setColor(Color.GRAY);
-            font.draw(batch, (active ? "> " : "  ") + RACE_LABELS[i], 18, 534 - i * 28);
+            font.draw(batch, (active ? "> " : "  ") + RACE_LABELS[i], 26, 548 - i * 30);
         }
 
         // ── 3. Clase ──
-        drawSectionLabel("3. CLASE", 18, 426, step == Step.CLASS);
+        drawSectionLabel("3. CLASE", 18, 420, step == Step.CLASS);
         for (int i = 0; i < CLASS_LABELS.length; i++) {
             boolean active = (step == Step.CLASS && i == selectedClass);
             boolean avail  = CLASS_AVAIL[i];
@@ -205,21 +205,21 @@ public class CharacterCreationScreen implements Screen {
             else if (!avail) font.setColor(new Color(0.28f, 0.28f, 0.28f, 1));
             else             font.setColor(Color.GRAY);
             String suffix = avail ? "" : " (prox.)";
-            font.draw(batch, (active ? "> " : "  ") + CLASS_LABELS[i] + suffix, 18, 398 - i * 28);
+            font.draw(batch, (active ? "> " : "  ") + CLASS_LABELS[i] + suffix, 26, 388 - i * 30);
         }
 
         // Footer
         font.setColor(new Color(0.45f, 0.45f, 0.68f, 1));
-        font.draw(batch, "ENTER: confirmar    ESC: volver", 0, 32, SPLIT, Align.center, false);
+        font.draw(batch, "ENTER confirmar    ESC volver", 0, 30, SPLIT, Align.center, false);
 
         batch.end();
     }
 
     private float[] sectionHighlight() {
         switch (step) {
-            case NAME:  return new float[]{ 576, 100 };
-            case RACE:  return new float[]{ 441, 134 };
-            case CLASS: default: return new float[]{ 56, 384 };
+            case NAME:  return new float[]{ 602, 106 };  // 602..708
+            case RACE:  return new float[]{ 442, 158 };  // 442..600
+            case CLASS: default: return new float[]{ 56, 384 };  // 56..440
         }
     }
 
@@ -266,9 +266,9 @@ public class CharacterCreationScreen implements Screen {
         int   barW      = portX - rx - 20;
         float hpPct     = Math.min(1f, hpPreview / 75f);
         shapes.setColor(0.20f, 0.20f, 0.20f, 1);
-        shapes.rect(rx, 498, barW, 8);
+        shapes.rect(rx, 452, barW, 10);
         shapes.setColor(0.20f, 0.70f, 0.25f, 1);
-        shapes.rect(rx, 498, barW * hpPct, 8);
+        shapes.rect(rx, 452, barW * hpPct, 10);
 
         shapes.end();
 
@@ -276,18 +276,18 @@ public class CharacterCreationScreen implements Screen {
 
         // Race name + description
         font.setColor(Color.WHITE);
-        font.draw(batch, RACE_LABELS[selectedRace], rx, 704);
+        font.draw(batch, RACE_LABELS[selectedRace], rx, 700);
         font.setColor(new Color(0.68f, 0.68f, 0.88f, 1));
-        font.draw(batch, RACE_DESC[selectedRace], rx, 680, portX - rx - 20, Align.left, true);
+        font.draw(batch, RACE_DESC[selectedRace], rx, 668, portX - rx - 20, Align.left, true);
 
-        // Stats with colored deltas
+        // Stats with colored deltas (2 columnas)
         font.setColor(new Color(0.60f, 0.60f, 0.88f, 1));
-        font.draw(batch, "ESTADISTICAS", rx, 638);
+        font.draw(batch, "ESTADISTICAS", rx, 596);
 
         String[] statKeys   = { "strength", "dexterity", "intelligence", "constitution", "wisdom" };
         String[] statLabels = { "STR", "DEX", "INT", "CON", "WIS" };
-        int[]    colX       = { rx, rx + 210, rx, rx + 210, rx };
-        int[]    rowY       = { 612, 612, 586, 586, 560 };
+        int[]    colX       = { rx, rx + 300, rx, rx + 300, rx };
+        int[]    rowY       = { 564, 564, 534, 534, 504 };
 
         for (int i = 0; i < statKeys.length; i++) {
             int total = preview.getModifier(statKeys[i]);
@@ -298,22 +298,22 @@ public class CharacterCreationScreen implements Screen {
                 font.setColor(delta > 0
                         ? new Color(0.35f, 0.90f, 0.35f, 1)
                         : new Color(0.90f, 0.35f, 0.35f, 1));
-                font.draw(batch, (delta > 0 ? "(+" : "(") + delta + ")", colX[i] + 78, rowY[i]);
+                font.draw(batch, (delta > 0 ? "(+" : "(") + delta + ")", colX[i] + 150, rowY[i]);
             }
         }
 
         // HP preview label + value
         font.setColor(new Color(0.68f, 0.68f, 0.88f, 1));
-        font.draw(batch, "HP estimado:", rx, 516);
+        font.draw(batch, "HP estimado:", rx, 478);
         font.setColor(Color.WHITE);
-        font.draw(batch, String.valueOf(hpPreview), rx + 120, 516);
+        font.draw(batch, String.valueOf(hpPreview), rx + 230, 478);
 
         // Class description (only when on CLASS step)
         if (step == Step.CLASS) {
             font.setColor(new Color(0.62f, 0.62f, 0.88f, 1));
-            font.draw(batch, CLASS_LABELS[selectedClass], rx, 450);
+            font.draw(batch, CLASS_LABELS[selectedClass], rx, 422);
             font.setColor(CLASS_AVAIL[selectedClass] ? new Color(0.80f, 0.80f, 1.0f, 1) : Color.GRAY);
-            font.draw(batch, CLASS_DESC[selectedClass], rx, 424, SCREEN_W - rx - 20, Align.left, true);
+            font.draw(batch, CLASS_DESC[selectedClass], rx, 394, SCREEN_W - rx - 20, Align.left, true);
         }
 
         // Start hint
