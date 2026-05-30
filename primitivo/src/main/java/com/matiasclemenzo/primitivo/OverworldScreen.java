@@ -63,7 +63,7 @@ public class OverworldScreen implements Screen {
     private static final int     MAP_ROWS = MAP.rows;
     private static final int     MAP_COLS = MAP.cols;
 
-    private enum OwState { EXPLORING, PAUSED, COMMAND, LOAD_MENU, HELP }
+    private enum OwState { EXPLORING, PAUSED, COMMAND, LOAD_MENU, HELP, INVENTORY }
 
     private static final String WALK_PATH = "sprites/characters/swordsman/lvl1/walk.png";
     private static final String RUN_PATH  = "sprites/characters/swordsman/lvl1/run.png";
@@ -81,6 +81,7 @@ public class OverworldScreen implements Screen {
     private String  statusMsg  = "Usa las flechas para moverte  |  ESC: pausa";
     private int     activeSlot = 0;
     private String  cmdBuffer  = "";
+    private int     invCursor  = 0;  // 0..11 inventario · 12 arma · 13 armadura
 
     // Smooth movement — caminar / correr (Shift)
     private static final float WALK_STEP = 0.16f;  // duración de un paso caminando
@@ -188,6 +189,8 @@ public class OverworldScreen implements Screen {
         hFenceReg    = new TextureRegion(fencesTex, 32,  0, 16, 16);   // cerca horizontal (col 2, fila 0)
         postReg      = new TextureRegion(fencesTex,  0,  0, 16, 16);   // poste (col 0, fila 0)
 
+        MusicManager.play("audio/music/overworld.ogg");
+
         Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
             public boolean keyTyped(char character) {
@@ -254,6 +257,10 @@ public class OverworldScreen implements Screen {
                 pauseSel = 0;
                 state = OwState.PAUSED;
             }
+            if (Gdx.input.isKeyJustPressed(Keys.TAB)) enterInventory();
+
+        } else if (state == OwState.INVENTORY) {
+            handleInventoryInput();
 
         } else if (state == OwState.PAUSED) {
             if (Gdx.input.isKeyJustPressed(Keys.UP))     pauseSel = 0;
@@ -329,6 +336,10 @@ public class OverworldScreen implements Screen {
             state = OwState.LOAD_MENU;
             return;
         }
+        if (cmd.equals("i")) {
+            enterInventory();
+            return;
+        }
         if (cmd.equals("help")) {
             state = OwState.HELP;
             return;
@@ -344,6 +355,79 @@ public class OverworldScreen implements Screen {
 
     private String slotLabel(int slot) {
         return slot == 0 ? "rapido" : String.valueOf(slot);
+    }
+
+    // ── Inventario (modo panel) ─────────────────────────────────────────
+
+    private void enterInventory() {
+        invCursor = 0;
+        state = OwState.INVENTORY;
+        statusMsg = "Inventario  |  flechas: mover   E: equipar/usar/quitar   Tab/ESC: salir";
+    }
+
+    private void handleInventoryInput() {
+        if (Gdx.input.isKeyJustPressed(Keys.TAB) || Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
+            state = OwState.EXPLORING;
+            statusMsg = "Usa las flechas para moverte  |  ESC: pausa";
+            return;
+        }
+        if (invCursor <= 11) {                     // grilla del inventario
+            int row = invCursor / 6, col = invCursor % 6;
+            if (Gdx.input.isKeyJustPressed(Keys.LEFT)  && col > 0) invCursor--;
+            if (Gdx.input.isKeyJustPressed(Keys.RIGHT) && col < 5) invCursor++;
+            if (Gdx.input.isKeyJustPressed(Keys.DOWN)  && row == 0) invCursor += 6;
+            if (Gdx.input.isKeyJustPressed(Keys.UP))   invCursor = (row == 1) ? invCursor - 6 : 12;
+        } else if (invCursor == 12) {              // slot de arma
+            if (Gdx.input.isKeyJustPressed(Keys.DOWN)) invCursor = 13;
+        } else if (invCursor == 13) {              // slot de armadura
+            if (Gdx.input.isKeyJustPressed(Keys.UP))   invCursor = 12;
+            if (Gdx.input.isKeyJustPressed(Keys.DOWN)) invCursor = 0;
+        }
+        if (Gdx.input.isKeyJustPressed(Keys.E)) doInventoryAction();
+    }
+
+    private void doInventoryAction() {
+        Inventory inv = player.getInventory();
+        if (invCursor == 12) {                      // quitar arma
+            if (inv.getEquippedWeapon() != null) {
+                statusMsg = "Quitaste " + inv.getEquippedWeapon().getName() + ".";
+                inv.unequipWeapon();
+            }
+            return;
+        }
+        if (invCursor == 13) {                      // quitar armadura
+            if (inv.getEquippedArmor() != null) {
+                statusMsg = "Quitaste " + inv.getEquippedArmor().getName() + ".";
+                inv.unequipArmor();
+            }
+            return;
+        }
+        List<Item> items = player.getInventoryItems();
+        if (invCursor >= items.size()) return;      // slot vacío
+        Item item = items.get(invCursor);
+        if (item instanceof Weapon || item instanceof Armor) {
+            inv.equip(item);
+            statusMsg = "Equipaste " + item.getName() + ".";
+        } else if (item instanceof Potion) {
+            if (player.getHp() >= player.getMaxHp()) {
+                statusMsg = "Ya tenés la vida llena.";
+            } else {
+                int before = player.getHp();
+                item.use(player);
+                inv.removeItem(item);
+                statusMsg = "Usaste " + item.getName() + " (+" + (player.getHp() - before) + " HP).";
+            }
+        }
+        int last = Math.min(11, Math.max(0, player.getInventoryItems().size() - 1));
+        if (invCursor > last) invCursor = last;
+    }
+
+    // -1 nada · 0..11 inventario · 100 arma · 101 armadura
+    private int panelSelection() {
+        if (state != OwState.INVENTORY) return -1;
+        if (invCursor == 12) return 100;
+        if (invCursor == 13) return 101;
+        return invCursor;
     }
 
     private void updateMovement(float delta) {
@@ -427,6 +511,7 @@ public class OverworldScreen implements Screen {
         shapes.setProjectionMatrix(uiCam.combined);
         batch.setProjectionMatrix(uiCam.combined);
         drawStatusBar();
+        playerPanel.setSelection(panelSelection());
         drawSidePanel();
 
         if (state == OwState.PAUSED)     drawPauseOverlay();

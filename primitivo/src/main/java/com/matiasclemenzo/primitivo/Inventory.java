@@ -50,6 +50,33 @@ public class Inventory {
         }
 }
 
+    public Weapon getEquippedWeapon() { return equippedWeapon; }
+    public Armor  getEquippedArmor()  { return equippedArmor; }
+
+    /**
+     * Equipa un arma/armadura: la saca de la mochila y devuelve la anterior
+     * (si había) de vuelta a la mochila. Ítems no equipables se ignoran.
+     */
+    public void equip(Item item) {
+        if (item instanceof Weapon) {
+            items.remove(item);
+            if (equippedWeapon != null) items.add(equippedWeapon);
+            equippedWeapon = (Weapon) item;
+        } else if (item instanceof Armor) {
+            items.remove(item);
+            if (equippedArmor != null) items.add(equippedArmor);
+            equippedArmor = (Armor) item;
+        }
+    }
+
+    public void unequipWeapon() {
+        if (equippedWeapon != null) { items.add(equippedWeapon); equippedWeapon = null; }
+    }
+
+    public void unequipArmor() {
+        if (equippedArmor != null) { items.add(equippedArmor); equippedArmor = null; }
+    }
+
     public List<Item> getItems() { return items; }
 
     public void listItems() {

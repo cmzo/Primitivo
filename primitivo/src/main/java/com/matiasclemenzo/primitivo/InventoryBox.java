@@ -1,13 +1,17 @@
 package com.matiasclemenzo.primitivo;
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import java.util.List;
 
 class InventoryBox extends PanelBox {
 
-    private static final int GAP   = 5;
-    private static final int GCOLS = 6;   // columnas (llenan el ancho de la sección)
-    private static final int GROWS = 2;   // filas
+    private static final int   GAP   = 5;
+    private static final int   GCOLS = 6;   // columnas (llenan el ancho de la sección)
+    private static final int   GROWS = 2;   // filas
+    private static final Color SEL   = new Color(1f, 0.82f, 0.35f, 1f);  // resaltado dorado
+
+    int selected = -1;   // -1 nada, 0..11 slot resaltado (lo fija PlayerPanel)
 
     private final Player player;
 
@@ -28,9 +32,10 @@ class InventoryBox extends PanelBox {
                 for (int col = 0; col < GCOLS; col++) {
                     int sx = pen.x + col * (slot + GAP);
                     int sy = top - slot - row * (slot + GAP);  // fila 0 = arriba
+                    boolean sel = (row * GCOLS + col) == selected;
                     pen.shapes.setColor(theme.SLOT_BG);
                     pen.shapes.rect(sx, sy, slot, slot);
-                    pen.shapes.setColor(theme.WOOD_MED);
+                    pen.shapes.setColor(sel ? SEL : theme.WOOD_MED);
                     pen.shapes.rect(sx,            sy,            slot, 2);
                     pen.shapes.rect(sx,            sy + slot - 2, slot, 2);
                     pen.shapes.rect(sx,            sy,            2,    slot);

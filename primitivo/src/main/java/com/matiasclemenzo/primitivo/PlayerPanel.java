@@ -18,8 +18,10 @@ class PlayerPanel {
 
     private static final int PORTRAIT_W = 160;
 
-    private final PanelTheme theme;
-    private final VStack     stack;
+    private final PanelTheme   theme;
+    private final VStack       stack;
+    private final EquipBox     equipBox;
+    private final InventoryBox invBox;
     private final BitmapFont font;    // 10px
     private final BitmapFont fontMd;  // 12px
     private final BitmapFont fontLg;  // 16px
@@ -31,15 +33,18 @@ class PlayerPanel {
         fontLg = Fonts.build(16);
         fontSm = Fonts.build(8);
 
-        theme = new PanelTheme(fontLg, fontMd, font, fontSm);
+        theme    = new PanelTheme(fontLg, fontMd, font, fontSm);
+        equipBox = new EquipBox(theme, player);
+        invBox   = new InventoryBox(theme, player);
+
         stack = new VStack(CX, CW, H - PanelTheme.MARGIN_TOP, theme);
         stack.add(new HeaderBox(theme, player));
         stack.add(new HBox(theme,
                 new StatsBox(theme, player),
                 new PortraitBox(theme, portraitSprite), PORTRAIT_W));
-        stack.add(new EquipBox(theme, player));
+        stack.add(equipBox);
         stack.add(new SkillsBox(theme, player));
-        stack.add(new InventoryBox(theme, player));
+        stack.add(invBox);
         stack.layoutBoxes();
 
         // Precargá los íconos de los ítems actuales (evita crear texturas dentro del batch)
@@ -60,6 +65,13 @@ class PlayerPanel {
 
         stack.drawShapes(shapes);
         stack.drawText(batch);
+    }
+
+    // Resalta el slot enfocado en modo inventario.
+    // sel: -1 nada · 0..11 inventario · 100 arma equipada · 101 armadura equipada.
+    void setSelection(int sel) {
+        invBox.selected   = (sel >= 0 && sel <= 11) ? sel : -1;
+        equipBox.selected = (sel == 100) ? 0 : (sel == 101) ? 1 : -1;
     }
 
     void dispose() {

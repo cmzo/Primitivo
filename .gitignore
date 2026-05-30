@@ -106,3 +106,6 @@ buildNumber.properties
 
 # Frames crudos del elfo (sin usar por ahora; tal vez se borren mas adelante)
 primitivo/assets/sprites/characters/elf/
+
+# Fuentes de audio en WAV (se commitean solo los .ogg convertidos)
+primitivo/assets/audio/music wav/

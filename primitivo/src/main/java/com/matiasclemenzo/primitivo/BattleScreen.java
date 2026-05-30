@@ -76,6 +76,7 @@ public class BattleScreen implements Screen {
         fontLg       = Fonts.build(24);
         battleSprite = new SpriteSheet(IDLE_PATH, IDLE_FRAME_W, IDLE_FRAME_H, 0.14f);
         playerPanel  = new PlayerPanel(player, battleSprite);
+        MusicManager.play("audio/music/battle.ogg");
     }
 
     @Override
