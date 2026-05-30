@@ -106,11 +106,19 @@
 ### Equipamiento, loot y progresión  ← FOCO ACTUAL
 - [x] Íconos en ítems + dibujo en slots + modo inventario (Tab/`:i`, tecla E: equipar/usar/desequipar)
 - [x] Cofres como fuente de ítems (con reveal)
-- [ ] **Equipamiento funcional** — aplicar stats de Weapon/Armor al daño/defensa en combate  ← PRÓXIMO
+- [x] **Equipamiento funcional** — el arma suma al ataque y la armadura reduce el daño; ATK/DEF y comparación en el panel
+- [x] **Persistencia del inventario** — mochila + equipado se guardan/cargan (serialización en `SaveManager`)
+- [ ] **Persistencia del estado de cofres** (abierto) en el save — hoy reaparecen al recargar
 - [ ] **Descartar ítems** (`X` con confirmación)
 - [ ] **Loot de enemigos** — drop post-batalla + pantalla de elección + tabla de drops por enemigo/nivel
-- [ ] **Persistencia** — guardar inventario y estado de cofres (abierto) en el save
 - [ ] Curva de dificultad — enemigos por zona, no solo por nivel
+
+### Flujo de inicio / sesiones (rediseño, a futuro)
+> Hoy "Nueva partida" sobre un save muestra una confirmación con el botón por
+> defecto en **Cancelar** (poco intuitivo).
+- [ ] Primer botón **"Jugar"** → lleva a una pantalla con **Empezar partida nueva** / **Cargar**
+- [ ] Concepto de **sesiones por héroe**: cada héroe/sesión con sus propios slots de guardado
+- [ ] Mostrar las sesiones existentes (héroe + progreso) para elegir cuál continuar
 
 ### Mapa (mejoras pendientes)
 - [ ] Autotiling de bordes para transiciones hierba/camino/agua (hoy solo autotilean las cercas)

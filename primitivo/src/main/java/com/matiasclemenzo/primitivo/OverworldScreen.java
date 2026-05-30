@@ -428,9 +428,14 @@ public class OverworldScreen implements Screen {
     }
 
     private void dispatchCommand(String cmd) {
-        if (cmd.equals("wq") || cmd.equals("qs")) {
+        if (cmd.equals("wq")) {                       // guardar y salir
             SaveManager.save(player, playerCol, playerRow, activeSlot);
-            statusMsg = "Guardado en slot " + slotLabel(activeSlot) + ".";
+            Gdx.app.exit();
+            return;
+        }
+        if (cmd.equals("qs")) {                       // guardado rápido (no sale)
+            SaveManager.save(player, playerCol, playerRow, activeSlot);
+            statusMsg = "Guardado rapido en slot " + slotLabel(activeSlot) + ".";
             return;
         }
         if (cmd.equals("q!")) {
@@ -956,7 +961,7 @@ public class OverworldScreen implements Screen {
         shapes.end();
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
-        int bw = 360, bh = 240;
+        int bw = 360, bh = 264;
         int bx = W / 2 - bw / 2, by = H / 2 - bh / 2;
 
         shapes.begin(ShapeRenderer.ShapeType.Filled);
@@ -970,7 +975,8 @@ public class OverworldScreen implements Screen {
         shapes.end();
 
         String[][] lines = {
-            { ":wq  :qs",  "guardar (slot activo)" },
+            { ":wq",       "guardar y salir"        },
+            { ":qs",       "guardado rapido"        },
             { ":q1-:q9",   "guardar en slot 1-9"   },
             { ":q!",       "salir sin guardar"      },
             { ":load",     "cargar partida"         },

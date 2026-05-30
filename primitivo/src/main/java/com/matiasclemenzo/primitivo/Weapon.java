@@ -24,4 +24,8 @@ public class Weapon extends Item {
     public int getAttackBonus() {
         return attackBonus;
     }
+
+    public String getDamageType() {
+        return damageType;
+    }
 }

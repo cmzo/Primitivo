@@ -66,6 +66,7 @@ public class SaveManager {
         Race          race      = buildRace(raceName);
         CharacterClass charClass = buildClass(className);
         Player         player   = new Player(name, race, charClass, stats, level, hp, maxHp, xp);
+        readInventory(p, player);
         return new SaveData(player, col, row);
     }
 
@@ -98,6 +99,68 @@ public class SaveManager {
         p.putInteger("int",     s.getModifier("intelligence"));
         p.putInteger("con",     s.getModifier("constitution"));
         p.putInteger("wis",     s.getModifier("wisdom"));
+        writeInventory(p, player);
+    }
+
+    // ── Inventario (serialización) ─────────────────────────────────────────
+
+    private static void writeInventory(Preferences p, Player player) {
+        Inventory inv = player.getInventory();
+        StringBuilder bag = new StringBuilder();
+        for (Item it : inv.getItems()) {
+            if (bag.length() > 0) bag.append('\n');
+            bag.append(serializeItem(it));
+        }
+        p.putString("inv",    bag.toString());
+        p.putString("equipW", inv.getEquippedWeapon() != null ? serializeItem(inv.getEquippedWeapon()) : "");
+        p.putString("equipA", inv.getEquippedArmor()  != null ? serializeItem(inv.getEquippedArmor())  : "");
+    }
+
+    private static void readInventory(Preferences p, Player player) {
+        String bag = p.getString("inv", "");
+        if (!bag.isEmpty()) {
+            for (String line : bag.split("\n")) {
+                Item it = deserializeItem(line);
+                if (it != null) player.addItem(it);
+            }
+        }
+        Item w = deserializeItem(p.getString("equipW", ""));
+        if (w != null) player.getInventory().equip(w);
+        Item a = deserializeItem(p.getString("equipA", ""));
+        if (a != null) player.getInventory().equip(a);
+    }
+
+    // Formato por ítem (campos separados por '|'):
+    //   W|name|desc|value|icon|attackBonus|damageType
+    //   A|name|desc|value|icon|defenseBonus
+    //   P|name|desc|value|icon|healAmount
+    private static String serializeItem(Item it) {
+        String common = it.getName() + "|" + it.getDescription() + "|" + it.getValue() + "|" + it.getIconIndex();
+        if (it instanceof Weapon) {
+            Weapon w = (Weapon) it;
+            return "W|" + common + "|" + w.getAttackBonus() + "|" + w.getDamageType();
+        }
+        if (it instanceof Armor)  return "A|" + common + "|" + ((Armor) it).getDefenseBonus();
+        if (it instanceof Potion) return "P|" + common + "|" + ((Potion) it).getHealAmount();
+        return "";
+    }
+
+    private static Item deserializeItem(String s) {
+        if (s == null || s.isEmpty()) return null;
+        String[] f = s.split("\\|", -1);
+        if (f.length < 6) return null;
+        String name = f[1], desc = f[2];
+        int value = parseInt(f[3], 0), icon = parseInt(f[4], 0);
+        switch (f[0]) {
+            case "W": return new Weapon(name, desc, value, parseInt(f[5], 0), f.length > 6 ? f[6] : "", icon);
+            case "A": return new Armor (name, desc, value, parseInt(f[5], 0), icon);
+            case "P": return new Potion(name, desc, value, parseInt(f[5], 0), icon);
+            default:  return null;
+        }
+    }
+
+    private static int parseInt(String s, int def) {
+        try { return Integer.parseInt(s.trim()); } catch (Exception e) { return def; }
     }
 
     private static Race buildRace(String name) {
