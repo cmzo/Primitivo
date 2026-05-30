@@ -70,7 +70,7 @@ public class OverworldScreen implements Screen {
         return new int[]{ MAP_COLS / 2, MAP_ROWS / 2 };
     }
 
-    private enum OwState { EXPLORING, PAUSED, COMMAND, LOAD_MENU, HELP, INVENTORY, REVEAL }
+    private enum OwState { EXPLORING, PAUSED, COMMAND, LOAD_MENU, HELP, INVENTORY, REVEAL, DISCARD_CONFIRM }
 
     // Cofre en el mapa: posición + contenido + estado.
     private static class Chest {
@@ -97,6 +97,8 @@ public class OverworldScreen implements Screen {
     private int     activeSlot = 0;
     private String  cmdBuffer  = "";
     private int     invCursor  = 0;  // 0..11 inventario · 12 arma · 13 armadura
+    private Item    discardItem;     // ítem en confirmación de descarte
+    private int     discardSlot;     // 0..11 mochila · 12 arma · 13 armadura
 
     private final List<Chest> chests = new ArrayList<>();
     private Item    revealItem;      // ítem mostrado en el cuadro de reveal
@@ -403,6 +405,15 @@ public class OverworldScreen implements Screen {
                 revealItem = null;
             }
 
+        } else if (state == OwState.DISCARD_CONFIRM) {
+            if (Gdx.input.isKeyJustPressed(Keys.S) || Gdx.input.isKeyJustPressed(Keys.Y)
+                    || Gdx.input.isKeyJustPressed(Keys.ENTER)) {
+                doDiscard();
+            } else if (Gdx.input.isKeyJustPressed(Keys.N) || Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
+                discardItem = null;
+                state = OwState.INVENTORY;
+            }
+
         } else if (state == OwState.PAUSED) {
             if (Gdx.input.isKeyJustPressed(Keys.UP))     pauseSel = 0;
             if (Gdx.input.isKeyJustPressed(Keys.DOWN))   pauseSel = 1;
@@ -508,7 +519,7 @@ public class OverworldScreen implements Screen {
     private void enterInventory() {
         invCursor = 0;
         state = OwState.INVENTORY;
-        statusMsg = "Inventario  |  flechas: mover   E: equipar/usar/quitar   Tab/ESC: salir";
+        statusMsg = "Inventario  |  flechas   E: equipar/usar/quitar   X: descartar   Tab/ESC: salir";
     }
 
     private void handleInventoryInput() {
@@ -530,6 +541,36 @@ public class OverworldScreen implements Screen {
             if (Gdx.input.isKeyJustPressed(Keys.DOWN)) invCursor = 0;
         }
         if (Gdx.input.isKeyJustPressed(Keys.E)) doInventoryAction();
+        if (Gdx.input.isKeyJustPressed(Keys.X)) tryDiscard();
+    }
+
+    private void tryDiscard() {
+        Inventory inv = player.getInventory();
+        if (invCursor == 12 && inv.getEquippedWeapon() != null) {
+            discardItem = inv.getEquippedWeapon(); discardSlot = 12;
+        } else if (invCursor == 13 && inv.getEquippedArmor() != null) {
+            discardItem = inv.getEquippedArmor(); discardSlot = 13;
+        } else if (invCursor <= 11) {
+            List<Item> items = player.getInventoryItems();
+            if (invCursor >= items.size()) return;
+            discardItem = items.get(invCursor); discardSlot = invCursor;
+        } else {
+            return;
+        }
+        state = OwState.DISCARD_CONFIRM;
+    }
+
+    private void doDiscard() {
+        Inventory inv = player.getInventory();
+        String name = discardItem.getName();
+        if (discardSlot == 12)      { inv.unequipWeapon(); inv.removeItem(discardItem); }
+        else if (discardSlot == 13) { inv.unequipArmor();  inv.removeItem(discardItem); }
+        else                          inv.removeItem(discardItem);
+        statusMsg   = "Descartaste " + name + ".";
+        discardItem = null;
+        state = OwState.INVENTORY;
+        int last = Math.min(11, Math.max(0, player.getInventoryItems().size() - 1));
+        if (invCursor <= 11 && invCursor > last) invCursor = last;
     }
 
     private void doInventoryAction() {
@@ -570,7 +611,7 @@ public class OverworldScreen implements Screen {
 
     // -1 nada · 0..11 inventario · 100 arma · 101 armadura
     private int panelSelection() {
-        if (state != OwState.INVENTORY) return -1;
+        if (state != OwState.INVENTORY && state != OwState.DISCARD_CONFIRM) return -1;
         if (invCursor == 12) return 100;
         if (invCursor == 13) return 101;
         return invCursor;
@@ -695,6 +736,39 @@ public class OverworldScreen implements Screen {
         if (state == OwState.LOAD_MENU)  drawLoadMenuOverlay();
         if (state == OwState.HELP)       drawHelpOverlay();
         if (state == OwState.REVEAL)     drawRevealOverlay();
+        if (state == OwState.DISCARD_CONFIRM) drawDiscardOverlay();
+    }
+
+    private void drawDiscardOverlay() {
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0f, 0f, 0f, 0.55f);
+        shapes.rect(0, 0, W, H);
+        shapes.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        int bw = 440, bh = 130, bx = W / 2 - bw / 2, by = H / 2 - bh / 2;
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.08f, 0.06f, 0.04f, 1);
+        shapes.rect(bx, by, bw, bh);
+        shapes.setColor(0.72f, 0.20f, 0.12f, 1);  // borde rojo (acción destructiva)
+        shapes.rect(bx,          by + bh - 2, bw, 2);
+        shapes.rect(bx,          by,          bw, 2);
+        shapes.rect(bx,          by,          2,  bh);
+        shapes.rect(bx + bw - 2, by,          2,  bh);
+        shapes.end();
+
+        batch.begin();
+        fontLg.setColor(new Color(0.92f, 0.45f, 0.35f, 1));
+        fontLg.draw(batch, "¿Descartar?", 0, by + bh - 16, W, Align.center, false);
+        if (discardItem != null) {
+            font.setColor(Color.WHITE);
+            font.draw(batch, discardItem.getName(), 0, by + bh - 56, W, Align.center, false);
+        }
+        font.setColor(new Color(0.70f, 0.70f, 0.70f, 1));
+        font.draw(batch, "[S] Si    [N] No", 0, by + 26, W, Align.center, false);
+        batch.end();
     }
 
     // Cofres con sprite (16→32px). Abierto: atenuado (placeholder hasta tener
