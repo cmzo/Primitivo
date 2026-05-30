@@ -8,11 +8,17 @@ abstract class Item {
     private String name;
     private String description;
     private int value;
+    private int iconIndex;   // índice de items/item<idx>.png (0 = sin ícono)
 
-    public Item(String name, String description, int value) {
+    public Item(String name, String description, int value, int iconIndex) {
         this.name = name;
         this.description = description;
         this.value = value;
+        this.iconIndex = iconIndex;
+    }
+
+    public int getIconIndex() {
+        return iconIndex;
     }
 
     /**

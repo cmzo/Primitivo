@@ -1,10 +1,16 @@
 package com.matiasclemenzo.primitivo;
 
 public class Potion extends Item {
+    static final int DEFAULT_ICON = 883;   // frasco (items/item883.png) — placeholder, cambialo a gusto
+
      private int healAmount;
 
     public Potion(String name, String description, int value, int healAmount) {
-        super(name, description, value);
+        this(name, description, value, healAmount, DEFAULT_ICON);
+    }
+
+    public Potion(String name, String description, int value, int healAmount, int iconIndex) {
+        super(name, description, value, iconIndex);
         this.healAmount = healAmount;
     }
 

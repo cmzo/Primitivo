@@ -41,6 +41,9 @@ class PlayerPanel {
         stack.add(new SkillsBox(theme, player));
         stack.add(new InventoryBox(theme, player));
         stack.layoutBoxes();
+
+        // Precargá los íconos de los ítems actuales (evita crear texturas dentro del batch)
+        for (Item it : player.getInventoryItems()) ItemIcons.get(it.getIconIndex());
     }
 
     void draw(ShapeRenderer shapes, SpriteBatch batch) {

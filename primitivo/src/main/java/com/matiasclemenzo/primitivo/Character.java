@@ -35,6 +35,7 @@ abstract class Character {
     public Stats getStats() { return stats; }
     public String getClassName() { return charClass.getClassName(); }
     public List<Item> getInventoryItems() { return inventory.getItems(); }
+    public void addItem(Item item) { inventory.addItem(item); }
 
     public boolean isAlive() {
         return hp > 0;
