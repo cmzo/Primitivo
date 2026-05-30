@@ -31,6 +31,7 @@ class Tileset {
         Color         color;     // floor de color sólido (sin textura), p.ej. agua
         boolean       solid;
         boolean       encounter;
+        boolean       autotile;  // la región es la esquina sup-izq de un bloque 3×3
     }
 
     private final List<TileDef> defs = new ArrayList<>();
@@ -66,6 +67,7 @@ class Tileset {
             String f = t[i];
             if (f.equals("solid"))           d.solid = true;
             else if (f.equals("encounter"))  d.encounter = true;
+            else if (f.equals("autotile"))   d.autotile = true;
             else if (f.startsWith("draw="))  d.drawSize = parseInt(f.substring(5), TILE);
             else if (f.startsWith("tint="))  d.tint  = hexColor(f.substring(5));
             else if (f.startsWith("color=")) d.color = hexColor(f.substring(6));

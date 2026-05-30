@@ -800,7 +800,9 @@ public class OverworldScreen implements Screen {
                 Tileset.TileDef d = TILESET.def(MAP.get(c, r));
                 int tx = c * TILE, ty = worldTileY(r);
                 if ("floor".equals(d.kind)) {
-                    if (d.region != null) {
+                    if (d.autotile && d.region != null) {
+                        batch.draw(autotileCell(c, r, d), tx, ty, TILE, TILE);
+                    } else if (d.region != null) {
                         if (d.tint != null) batch.setColor(d.tint);
                         batch.draw(d.region, tx, ty, TILE, TILE);
                         if (d.tint != null) batch.setColor(Color.WHITE);
@@ -841,6 +843,43 @@ public class OverworldScreen implements Screen {
         batch.begin();
         sprite.draw(batch, facingRow, visualX, visualY, size, size);
         batch.end();
+    }
+
+    // Para tiles autotile (la región es la esquina sup-izq de un bloque 3×3):
+    // elige la celda según los vecinos del mismo tipo → orillas/esquinas en vez
+    // de cortes a 90°. Cubre cuerpos convexos (lagos, manchas de camino).
+    private TextureRegion autotileCell(int c, int r, Tileset.TileDef d) {
+        int self = MAP.get(c, r);
+        boolean n = sameTile(c, r - 1, self);  // arriba = norte
+        boolean s = sameTile(c, r + 1, self);  // abajo = sur
+        boolean e = sameTile(c + 1, r, self);
+        boolean w = sameTile(c - 1, r, self);
+
+        if (n && e && s && w) {
+            // Interior: si una diagonal es distinta, usar esquina interna (cóncava).
+            // Celdas internas (filas 3-4): nub de pasto hacia esa diagonal.
+            if      (!sameTile(c + 1, r - 1, self)) return atCell(d, 0, 4);  // pasto al NE
+            else if (!sameTile(c - 1, r - 1, self)) return atCell(d, 1, 4);  // pasto al NW
+            else if (!sameTile(c + 1, r + 1, self)) return atCell(d, 0, 3);  // pasto al SE
+            else if (!sameTile(c - 1, r + 1, self)) return atCell(d, 1, 3);  // pasto al SW
+            return atCell(d, 1, 1);                                          // centro lleno
+        }
+        // Borde/esquina externa (convexa)
+        int dx = (!w && e) ? 0 : (w && !e) ? 2 : 1;
+        int dy = (!n && s) ? 0 : (n && !s) ? 2 : 1;
+        return atCell(d, dx, dy);
+    }
+
+    private TextureRegion atCell(Tileset.TileDef d, int colRel, int rowRel) {
+        int sz = d.region.getRegionWidth();
+        return new TextureRegion(d.region.getTexture(),
+                d.region.getRegionX() + colRel * sz, d.region.getRegionY() + rowRel * sz, sz, sz);
+    }
+
+    // Fuera del mapa = mismo tipo (sin orilla en el borde).
+    private boolean sameTile(int c, int r, int self) {
+        if (c < 0 || c >= MAP_COLS || r < 0 || r >= MAP_ROWS) return true;
+        return MAP.get(c, r) == self;
     }
 
     // Objetos del tileset (kind=object): sprite sobre la base, centrado y anclado
