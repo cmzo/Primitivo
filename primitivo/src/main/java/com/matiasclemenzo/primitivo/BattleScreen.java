@@ -179,7 +179,7 @@ public class BattleScreen implements Screen {
     private void executePlayerAction() {
         switch (selectedAction) {
             case 0:
-                int dmg = player.getStats().getModifier("strength");
+                int dmg = player.getStats().getModifier("strength") + player.getAttackBonus();
                 enemy.takeDamage(dmg);
                 message = player.getName() + " ataca! " + enemy.getName() + " recibe " + dmg + " de daño.";
                 state = BattleState.AFTER_PLAYER_ACTION;

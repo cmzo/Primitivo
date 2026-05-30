@@ -33,13 +33,11 @@
         }
 
         public void chooseAction(Character character) {
-            if (hp > maxHp * 0.4f) {
-                character.takeDamage(stats.getModifier("strength"));
-                System.out.println(name + " ataca!");
-            } else {
-                character.takeDamage(stats.getModifier("strength") * 2);
-                System.out.println(name + " ataca con furia!");
-            }
+            boolean furia = hp <= maxHp * 0.4f;
+            int raw = stats.getModifier("strength") * (furia ? 2 : 1);
+            int dmg = Math.max(1, raw - character.getDefenseBonus());  // la armadura reduce
+            character.takeDamage(dmg);
+            System.out.println(name + (furia ? " ataca con furia!" : " ataca!"));
         }
 
         public int getHp() { return hp; }

@@ -38,6 +38,17 @@ abstract class Character {
     public void addItem(Item item) { inventory.addItem(item); }
     public Inventory getInventory() { return inventory; }
 
+    // Bonus del equipo (0 si no hay nada equipado)
+    public int getAttackBonus() {
+        Weapon w = inventory.getEquippedWeapon();
+        return (w != null) ? w.getAttackBonus() : 0;
+    }
+
+    public int getDefenseBonus() {
+        Armor a = inventory.getEquippedArmor();
+        return (a != null) ? a.getDefenseBonus() : 0;
+    }
+
     public boolean isAlive() {
         return hp > 0;
     }

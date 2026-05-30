@@ -25,7 +25,7 @@ class PanelTheme {
     static final int PAD        = 6;   // padding interno de la caja (top/bottom/left/right)
     static final int GAP_LINE   = 4;   // entre líneas de texto
     static final int GAP_VSTACK = 16;  // entre cajas (más aire; deja lugar abajo para widgets futuros)
-    static final int TITLE_H    = 16;  // alto de la barra de título
+    static final int TITLE_H    = 22;  // alto de la barra de título (con aire arriba/abajo del texto)
     static final int BAR_H      = 10;  // alto barras HP/XP
     static final int MARGIN_TOP = 15;  // margen superior antes de la primera caja
 

@@ -2,13 +2,17 @@ package com.matiasclemenzo.primitivo;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.utils.Align;
 
 class EquipBox extends PanelBox {
 
     private static final int   SLOT_SIZE = 40;
-    private static final Color SEL = new Color(1f, 0.82f, 0.35f, 1f);  // resaltado dorado
+    private static final Color SEL   = new Color(1f,   0.82f, 0.35f, 1f);  // resaltado dorado
+    private static final Color GREEN = new Color(0.13f, 0.48f, 0.15f, 1f); // mejor (verde bosque)
+    private static final Color RED   = new Color(0.72f, 0.20f, 0.12f, 1f); // peor (rojo tierra)
 
-    int selected = -1;   // -1 nada, 0 arma, 1 armadura (lo fija PlayerPanel)
+    int  selected = -1;   // -1 nada, 0 arma, 1 armadura (lo fija PlayerPanel)
+    Item preview;         // ítem del inventario bajo el cursor (para comparar)
 
     private final Player player;
 
@@ -48,9 +52,28 @@ class EquipBox extends PanelBox {
             }
             int capH  = (int) theme.font.getCapHeight();
             int textY = sy - (SLOT_SIZE - capH) / 2;
-            String name = (equipped != null) ? equipped.getName() : "(vacío)";
+            String name = "(vacío)";
+            if (equipped instanceof Weapon) name = equipped.getName() + " (+" + ((Weapon) equipped).getAttackBonus() + " atq)";
+            else if (equipped instanceof Armor) name = equipped.getName() + " (+" + ((Armor) equipped).getDefenseBonus() + " def)";
+            else if (equipped != null) name = equipped.getName();
             theme.font.setColor(equipped != null ? theme.TEXT : theme.TEXT_DIM);
             theme.font.draw(pen.batch, label + ": " + name, sx + SLOT_SIZE + 12, textY);
+
+            // Comparación: si el cursor del inventario está sobre un ítem de este
+            // tipo, mostrá cuánto cambia el bonus respecto de lo equipado.
+            boolean matches = (slotId == 0 && preview instanceof Weapon)
+                           || (slotId == 1 && preview instanceof Armor);
+            if (matches) {
+                int eq = (slotId == 0)
+                        ? (equipped instanceof Weapon ? ((Weapon) equipped).getAttackBonus() : 0)
+                        : (equipped instanceof Armor  ? ((Armor)  equipped).getDefenseBonus() : 0);
+                int pv = (slotId == 0) ? ((Weapon) preview).getAttackBonus()
+                                       : ((Armor)  preview).getDefenseBonus();
+                int delta = pv - eq;
+                String ds = (delta > 0 ? "+" : "") + delta;
+                theme.font.setColor(delta > 0 ? GREEN : delta < 0 ? RED : theme.TEXT_DIM);
+                theme.font.draw(pen.batch, ds, sx, textY, pen.w - 8, Align.right, false);  // margen a la derecha
+            }
         }
 
         pen.gap(SLOT_SIZE);

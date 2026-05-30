@@ -74,6 +74,11 @@ class PlayerPanel {
         equipBox.selected = (sel == 100) ? 0 : (sel == 101) ? 1 : -1;
     }
 
+    // Ítem del inventario bajo el cursor, para mostrar la comparación en EquipBox.
+    void setPreview(Item item) {
+        equipBox.preview = item;
+    }
+
     void dispose() {
         font.dispose();
         fontMd.dispose();

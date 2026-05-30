@@ -361,6 +361,8 @@ public class OverworldScreen implements Screen {
             }
             if (Gdx.input.isKeyJustPressed(Keys.TAB)) enterInventory();
             if (Gdx.input.isKeyJustPressed(Keys.E))   tryInteract();
+            if (Gdx.input.isKeyJustPressed(Keys.M))
+                statusMsg = MusicManager.toggleMute() ? "Musica silenciada (M)." : "Musica activada (M).";
 
         } else if (state == OwState.INVENTORY) {
             handleInventoryInput();
@@ -540,6 +542,15 @@ public class OverworldScreen implements Screen {
         return invCursor;
     }
 
+    // Arma/armadura del inventario bajo el cursor (para la comparación en EquipBox).
+    private Item previewItem() {
+        if (state != OwState.INVENTORY || invCursor < 0 || invCursor > 11) return null;
+        List<Item> items = player.getInventoryItems();
+        if (invCursor >= items.size()) return null;
+        Item it = items.get(invCursor);
+        return (it instanceof Weapon || it instanceof Armor) ? it : null;
+    }
+
     private void updateMovement(float delta) {
         if (!isMoving) return;
         moveTimer += delta;
@@ -623,6 +634,7 @@ public class OverworldScreen implements Screen {
         batch.setProjectionMatrix(uiCam.combined);
         drawStatusBar();
         playerPanel.setSelection(panelSelection());
+        playerPanel.setPreview(previewItem());
         drawSidePanel();
 
         if (state == OwState.PAUSED)     drawPauseOverlay();

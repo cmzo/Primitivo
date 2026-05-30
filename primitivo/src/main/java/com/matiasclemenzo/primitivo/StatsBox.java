@@ -23,6 +23,11 @@ class StatsBox extends PanelBox {
         pen.text(theme.font, theme.TEXT,
                 "WIS  " + s.getModifier("wisdom"));
 
+        // Stats de combate derivados del equipo (ATK = fuerza + arma, DEF = armadura)
+        pen.text2col(theme.font, theme.TEAL,
+                "ATK  " + (s.getModifier("strength") + player.getAttackBonus()),
+                "DEF  " + player.getDefenseBonus(), col2);
+
         float hpPct = Math.max(0f, (float) player.getHp() / player.getMaxHp());
         pen.text(theme.font, theme.TEXT,
                 "HP  " + Math.max(0, player.getHp()) + " / " + player.getMaxHp());

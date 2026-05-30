@@ -9,9 +9,10 @@ import com.badlogic.gdx.files.FileHandle;
 // LibGDX reproduce OGG/MP3/WAV; preferí OGG: pesa ~10-20× menos que WAV.
 class MusicManager {
 
-    private static Music  current;
-    private static String currentPath;
-    private static float  volume = 0.5f;
+    private static Music   current;
+    private static String  currentPath;
+    private static float   volume = 0.5f;
+    private static boolean muted  = false;
 
     static void play(String internalPath) {
         FileHandle f = Gdx.files.internal(internalPath);
@@ -20,17 +21,26 @@ class MusicManager {
         stop();
         current = Gdx.audio.newMusic(f);
         current.setLooping(true);
-        current.setVolume(volume);
+        current.setVolume(effectiveVolume());
         current.play();
         currentPath = internalPath;
     }
 
     static void setVolume(float v) {
         volume = Math.max(0f, Math.min(1f, v));
-        if (current != null) current.setVolume(volume);
+        applyVolume();
     }
 
     static float getVolume() { return volume; }
+
+    // Silencia/reactiva la música; devuelve el nuevo estado (true = silenciada).
+    static boolean toggleMute() {
+        muted = !muted;
+        applyVolume();
+        return muted;
+    }
+
+    static boolean isMuted() { return muted; }
 
     static void stop() {
         if (current != null) {
@@ -39,5 +49,11 @@ class MusicManager {
             current = null;
             currentPath = null;
         }
+    }
+
+    private static float effectiveVolume() { return muted ? 0f : volume; }
+
+    private static void applyVolume() {
+        if (current != null) current.setVolume(effectiveVolume());
     }
 }
