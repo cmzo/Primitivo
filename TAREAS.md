@@ -80,27 +80,48 @@
 - [x] **`assets/items/`** — 1244 íconos 16×16 (`item1.png`…`item1244.png`) para inventario/loot
 - [x] **`assets/tiles/overworld/`** — tilesets de terreno 16×16: `grass.png`, `plains.png` (6×12), `water-sheet.png` (agua animada), `fences.png`, `decor_16x16.png`, `floors/`, `walls/` (+ puertas)
 
+### Fase 8 — Inventario y equipamiento (interacción)
+- [x] **Íconos en `Item`** — `iconIndex` → `items/item###.png`; `ItemIcons` cachea texturas; defaults por tipo (espada/peto/poción)
+- [x] **Íconos en el panel** — `InventoryBox` (grid 6×2 que llena el ancho) y `EquipBox` muestran el ícono de cada ítem
+- [x] **Modo inventario** — Tab o `:i` enfoca el panel; cursor con flechas; tecla **`E`** contextual sin confirmación: equipar arma/armadura (swap), usar poción (consume), desequipar
+- [x] **Ítems iniciales** — el jugador arranca con espada/túnica/2 pociones (temporal)
+
+### Fase 9 — Cofres, música y pulido
+- [x] **Cofres** — fuente real de ítems; `E` de frente abre + cuadro de reveal (ícono + nombre + lore); bloquean el paso y quedan abiertos
+- [x] **Música** — `MusicManager` en streaming (loop, volumen); overworld + combate (WAV→OGG, WAVs ignorados por git)
+- [x] **Tall grass** — `h`/`H` = zona de encuentros; `G` decorativa (sin spawns)
+- [x] **Fixes** — sprite de espaldas (`SpriteSheet` detecta frames reales por dirección); más aire en el panel; reespaciado de la creación de personaje
+- [x] **Pantalla de título** + routing
+
+### Fase 10 — Mapa data-driven (tileset.cfg) + hot-reload
+- [x] **`Tileset`** — `assets/tiles/tileset.cfg` define cada letra: png/región/kind/flags (`floor`/`object`/`inn`/`fence`/`chest`, `solid`, `encounter`, `draw=`, `tint=`, `color=`). Agregar un tile = una línea + usarla en el txt, sin Java
+- [x] **`TileMap`** guarda índices del tileset; render y lógica (sólido/encuentro/posada/cofre) leen del tileset
+- [x] **Posada y cofre con sprites** (`inn.png`, `chest.png`); posada derivada de la `I` del mapa; **autotile de cercas** por vecinos
+- [x] **Hot-reload** — `overworld.txt` y `tileset.cfg` se recargan en vivo al guardar
+
+---
+
+## Próximo
+
+### Equipamiento, loot y progresión  ← FOCO ACTUAL
+- [x] Íconos en ítems + dibujo en slots + modo inventario (Tab/`:i`, tecla E: equipar/usar/desequipar)
+- [x] Cofres como fuente de ítems (con reveal)
+- [ ] **Equipamiento funcional** — aplicar stats de Weapon/Armor al daño/defensa en combate  ← PRÓXIMO
+- [ ] **Descartar ítems** (`X` con confirmación)
+- [ ] **Loot de enemigos** — drop post-batalla + pantalla de elección + tabla de drops por enemigo/nivel
+- [ ] **Persistencia** — guardar inventario y estado de cofres (abierto) en el save
+- [ ] Curva de dificultad — enemigos por zona, no solo por nivel
+
+### Mapa (mejoras pendientes)
+- [ ] Autotiling de bordes para transiciones hierba/camino/agua (hoy solo autotilean las cercas)
+- [ ] Cerca con piezas verticales/esquina (el sheet actual solo trae horizontales)
+- [ ] Agua animada (conseguir un sheet sin watermark)
+- [ ] Zonas con encuentros de mayor nivel alejadas del inicio
+
 ### Battle screen visual
 - [ ] Sprites de enemigos en batalla (al menos 3-4 tipos básicos)
 - [ ] Animaciones de ataque/defensa/habilidad
 - [ ] Mejor layout de la batalla — enemigo a la izquierda, jugador a la derecha, acciones abajo
-
-### Tileset PNG en el mapa  ← PRÓXIMO CANDIDATO
-- [ ] Reemplazar los rectángulos de `ShapeRenderer` por tiles PNG de `tiles/overworld/` (16×16 dibujados a 2× = 32px, filtro nearest)
-- [ ] Mapear cada tipo de tile a una región: GRASS→`grass.png`/`plains.png`, PATH→tierra/camino de `plains.png`, WATER→`water-sheet.png` (animada)
-- [ ] Posada con `walls/` + `floors/` + puertas en lugar del dibujo actual
-- [ ] (Opcional) autotiling de bordes para transiciones limpias hierba/camino/agua
-- [ ] Zonas con encuentros de mayor nivel alejadas del punto de inicio
-
-### Inventario y looteo  ← IMPORTANTE
-> Assets listos: `assets/items/` (1244 íconos 16×16). Falta asociar `Item` ↔ ícono.
-- [ ] Asignar un ícono (índice de `item###.png`) a cada `Item` (Weapon/Armor/Potion)
-- [ ] **Inventario interactivo** — pantalla/overlay (tecla I o Tab) para ver, equipar y descartar; preview de stats y comparación con lo equipado
-- [ ] Dibujar los íconos en los slots del panel (`InventoryBox`) y de equipamiento (`EquipBox`)
-- [ ] **Pantalla de looteo post-batalla** — ítems dropeados al derrotar un enemigo; el jugador elige qué tomar
-- [ ] Tabla de drops por enemigo / nivel
-- [ ] Equipamiento funcional — aplicar stats de Weapon/Armor al daño/defensa en batalla
-- [ ] Curva de dificultad — enemigos por zona, no solo por nivel del jugador
 
 ---
 

@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.glutils.HdpiUtils;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.NinePatch;
@@ -29,41 +30,52 @@ public class OverworldScreen implements Screen {
     private static final int VIEW_W   = W;           // viewport del mundo: ancho
     private static final int VIEW_H   = H - STATUS_H; // viewport del mundo: alto (sobre la barra)
 
-    // Tipos de tile
-    private static final int PATH  = 0;
-    private static final int GRASS = 1;
-    private static final int TREE  = 2;
-    private static final int WATER = 3;
-    private static final int INN   = 4;
-    private static final int FENCE = 5;
+    // Mapa + tileset recargables en caliente (ver maybeHotReload).
+    // El tileset (tiles/tileset.cfg) define png/región/flags por letra; el mapa
+    // (overworld.txt) guarda índices del tileset. Editás cualquiera y recarga.
+    private static final String MAP_PATH     = "maps/overworld.txt";
+    private static final String TILESET_PATH = "tiles/tileset.cfg";
+    private static Tileset TILESET;
+    private static TileMap MAP;
+    private static int     MAP_ROWS;
+    private static int     MAP_COLS;
 
-    // Punto de reaparición tras derrota
-    public static final int INN_COL = 2;
-    public static final int INN_ROW = 2;
+    // Posada — la puerta es la 'I' del mapa: ese tile cura y es el respawn.
+    // La casa (sprite 3×4 tiles) se dibuja anclada ahí y su footprint bloquea.
+    // Mové la 'I' en overworld.txt y la casa la sigue (dejá fila ≥ 4 para que
+    // el techo no se solape con el borde, y columna entre 1 y ancho-2).
+    public static int INN_COL;
+    public static int INN_ROW;
 
-    private static final Color[] TILE_COLOR = {
-        new Color(0.72f, 0.68f, 0.55f, 1),  // PATH
-        new Color(0.35f, 0.60f, 0.25f, 1),  // GRASS
-        new Color(0.14f, 0.34f, 0.14f, 1),  // TREE
-        new Color(0.25f, 0.52f, 0.78f, 1),  // WATER
-        new Color(0.75f, 0.58f, 0.30f, 1),  // INN  — madera cálida
-    };
-    private static final Color[] TILE_SHADOW = {
-        new Color(0.56f, 0.53f, 0.43f, 1),
-        new Color(0.27f, 0.47f, 0.19f, 1),
-        new Color(0.10f, 0.24f, 0.10f, 1),
-        new Color(0.18f, 0.40f, 0.60f, 1),
-        new Color(0.55f, 0.42f, 0.20f, 1),
-    };
+    static { loadMapStatic(); }
 
-    // Mapa del overworld, cargado desde un archivo externo (ver TileMap).
-    // Más grande que el viewport → hay scroll. Se carga una sola vez al
-    // referenciar la clase (Gdx ya está inicializado para entonces).
-    private static final TileMap MAP      = new TileMap("maps/overworld.txt");
-    private static final int     MAP_ROWS = MAP.rows;
-    private static final int     MAP_COLS = MAP.cols;
+    private static void loadMapStatic() {
+        if (TILESET != null) TILESET.dispose();
+        TILESET  = new Tileset(TILESET_PATH);
+        MAP      = new TileMap(MAP_PATH, TILESET);
+        MAP_ROWS = MAP.rows;
+        MAP_COLS = MAP.cols;
+        int[] inn = findInn();
+        INN_COL = inn[0];
+        INN_ROW = inn[1];
+    }
 
-    private enum OwState { EXPLORING, PAUSED, COMMAND, LOAD_MENU, HELP, INVENTORY }
+    private static int[] findInn() {
+        for (int r = 0; r < MAP_ROWS; r++)
+            for (int c = 0; c < MAP_COLS; c++)
+                if ("inn".equals(TILESET.def(MAP.get(c, r)).kind)) return new int[]{ c, r };
+        return new int[]{ MAP_COLS / 2, MAP_ROWS / 2 };
+    }
+
+    private enum OwState { EXPLORING, PAUSED, COMMAND, LOAD_MENU, HELP, INVENTORY, REVEAL }
+
+    // Cofre en el mapa: posición + contenido + estado.
+    private static class Chest {
+        final int  col, row;
+        final Item item;
+        boolean    opened;
+        Chest(int col, int row, Item item) { this.col = col; this.row = row; this.item = item; }
+    }
 
     private static final String WALK_PATH = "sprites/characters/swordsman/lvl1/walk.png";
     private static final String RUN_PATH  = "sprites/characters/swordsman/lvl1/run.png";
@@ -82,6 +94,11 @@ public class OverworldScreen implements Screen {
     private int     activeSlot = 0;
     private String  cmdBuffer  = "";
     private int     invCursor  = 0;  // 0..11 inventario · 12 arma · 13 armadura
+
+    private final List<Chest> chests = new ArrayList<>();
+    private Item    revealItem;      // ítem mostrado en el cuadro de reveal
+    private long    mapMtime;        // última mod. de overworld.txt (hot-reload)
+    private long    cfgMtime;        // última mod. de tileset.cfg (hot-reload)
 
     // Smooth movement — caminar / correr (Shift)
     private static final float WALK_STEP = 0.16f;  // duración de un paso caminando
@@ -109,16 +126,15 @@ public class OverworldScreen implements Screen {
     private SpriteSheet        idleSprite;
     private Texture            mainTilesTex;
     private NinePatch          panelPatch;
-    private Texture[]          treeTexs;   // variantes de árbol (128×128)
-    private Texture            grassTex;
-    private Texture            plainsTex;
-    private Texture            decorTex;   // decor_16x16 (rocas, etc.)
-    private Texture            fencesTex;  // cerca de madera
-    private TextureRegion      grassReg;   // tile de pasto (16×16)
-    private TextureRegion      dirtReg;    // tile de tierra (plains, celda 2,1)
-    private TextureRegion      rockReg;    // roca (decor_16x16 celda 2,4)
-    private TextureRegion      hFenceReg;  // tramo de cerca horizontal (fences 2,0)
-    private TextureRegion      postReg;    // poste de cerca (fences 0,0)
+    // Referencias derivadas del Tileset (se rearman en rebuildTileRefs)
+    private TextureRegion      groundReg;  // base de pasto bajo objetos/especiales
+    private TextureRegion      chestReg;   // sprite de cofre (kind chest)
+    private TextureRegion      houseReg;   // sprite de posada (kind inn)
+    private TextureRegion      fencePostReg;   // poste suelto / vertical
+    private TextureRegion      fenceLeftReg;   // punta izquierda (riel a la derecha)
+    private TextureRegion      fenceMidReg;    // tramo del medio (rieles a ambos lados)
+    private TextureRegion      fenceRightReg;  // punta derecha (riel a la izquierda)
+    private Texture            whitePixel; // 1×1 blanco para floors de color (agua)
     private PlayerPanel        playerPanel;
 
     public OverworldScreen(PrimitivoGame game, Player player) {
@@ -146,6 +162,101 @@ public class OverworldScreen implements Screen {
         this.targetY    = this.visualY;
         this.startVisX  = this.visualX;
         this.startVisY  = this.visualY;
+        initChests();
+    }
+
+    // Cofres del mapa: se generan en cada tile 'C' del txt (como todo lo demás).
+    // El contenido se asigna en orden de aparición (ver lootForChest). El estado
+    // "abierto" vive en la instancia (todavía no se guarda en el save).
+    private void initChests() {
+        int i = 0;
+        for (int r = 0; r < MAP_ROWS; r++)
+            for (int c = 0; c < MAP_COLS; c++)
+                if ("chest".equals(TILESET.def(MAP.get(c, r)).kind))
+                    chests.add(new Chest(c, r, lootForChest(i++)));
+    }
+
+    // Botín por cofre (en orden de aparición). Devolvé una instancia NUEVA por
+    // cofre. Cambiá/ampliá esta lista para curar el loot con su lore.
+    private Item lootForChest(int i) {
+        switch (i % 3) {
+            case 0:  return new Weapon("Espada del caido",
+                        "Una hoja fina, demasiado buena para estar olvidada aqui. Alguien la perdio... o la escondio.",
+                        50, 5, "cortante", 1);
+            case 1:  return new Armor("Cota raida",
+                        "Maltrecha pero solida. Aun huele a humo.", 30, 3);
+            default: return new Potion("Pocion mayor",
+                        "Un brebaje denso y carmesi.", 20, 40);
+        }
+    }
+
+    private Chest chestAt(int col, int row) {
+        for (Chest c : chests) if (c.col == col && c.row == row) return c;
+        return null;
+    }
+
+    // Hot-reload: si overworld.txt cambió en disco, recarga el mapa en vivo
+    // (terreno, posada, cofres). Editás el txt en el editor y el juego se
+    // actualiza al guardar, sin reiniciar.
+    private void maybeHotReload() {
+        long m  = Gdx.files.internal(MAP_PATH).lastModified();
+        long cm = Gdx.files.internal(TILESET_PATH).lastModified();
+        if ((m != 0L && m != mapMtime) || (cm != 0L && cm != cfgMtime)) {
+            mapMtime = m;
+            cfgMtime = cm;
+            loadMapStatic();      // recarga tileset + mapa
+            rebuildTileRefs();    // refresca regiones derivadas (pasto, cerca, cofre, casa)
+            chests.clear();
+            initChests();
+            clampPlayerToMap();
+            statusMsg = "Mapa recargado.";
+        }
+    }
+
+    private void clampPlayerToMap() {
+        playerCol = Math.min(playerCol, MAP_COLS - 1);
+        playerRow = Math.min(playerRow, MAP_ROWS - 1);
+        visualX   = playerCol * TILE - TILE;
+        visualY   = worldTileY(playerRow) - TILE;
+        targetX   = visualX;  targetY   = visualY;
+        startVisX = visualX;  startVisY = visualY;
+        isMoving  = false;
+    }
+
+    // Regiones derivadas del Tileset (pasto base, cofre, posada, cerca).
+    private void rebuildTileRefs() {
+        groundReg = TILESET.ground();
+        Tileset.TileDef chestDef = TILESET.firstOfKind("chest");
+        chestReg  = (chestDef != null) ? chestDef.region : null;
+        Tileset.TileDef innDef = TILESET.firstOfKind("inn");
+        houseReg  = (innDef != null) ? innDef.region : null;
+        Tileset.TileDef fenceDef = TILESET.firstOfKind("fence");
+        if (fenceDef != null && fenceDef.region != null) {
+            Texture ft = fenceDef.region.getTexture();
+            fencePostReg  = new TextureRegion(ft,  0, 0, 16, 16);
+            fenceLeftReg  = new TextureRegion(ft, 16, 0, 16, 16);
+            fenceMidReg   = new TextureRegion(ft, 32, 0, 16, 16);
+            fenceRightReg = new TextureRegion(ft, 48, 0, 16, 16);
+        }
+    }
+
+    // Abre el cofre que el jugador tiene enfrente (según hacia dónde mira).
+    private void tryInteract() {
+        int fc = playerCol, fr = playerRow;
+        switch (facingRow) {
+            case SpriteSheet.DIR_DOWN:  fr++; break;
+            case SpriteSheet.DIR_UP:    fr--; break;
+            case SpriteSheet.DIR_LEFT:  fc--; break;
+            case SpriteSheet.DIR_RIGHT: fc++; break;
+        }
+        Chest c = chestAt(fc, fr);
+        if (c != null && !c.opened) {
+            c.opened = true;
+            player.addItem(c.item);
+            ItemIcons.get(c.item.getIconIndex());  // precargá el ícono fuera del batch
+            revealItem = c.item;
+            state = OwState.REVEAL;
+        }
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
@@ -168,27 +279,15 @@ public class OverworldScreen implements Screen {
 
         mainTilesTex = new Texture(Gdx.files.internal("ui/main_tiles.png"));
         panelPatch   = buildPanelPatch(mainTilesTex);
-        // Variantes de árbol (probá cambiar/agregar nombres de tiles/overworld/trees/Trees_shadow/)
-        String[] treeFiles = {
-            "Tree1.png", "Moss_tree1.png", "Fruit_tree1.png", "Flower_tree1.png",
-        };
-        treeTexs = new Texture[treeFiles.length];
-        for (int i = 0; i < treeFiles.length; i++)
-            treeTexs[i] = new Texture(Gdx.files.internal("tiles/overworld/trees/Trees_shadow/" + treeFiles[i]));
 
-        grassTex     = new Texture(Gdx.files.internal("tiles/overworld/grass.png"));
-        plainsTex    = new Texture(Gdx.files.internal("tiles/overworld/plains.png"));
-        decorTex     = new Texture(Gdx.files.internal("tiles/overworld/decor_16x16.png"));
-        fencesTex    = new Texture(Gdx.files.internal("tiles/overworld/fences.png"));
-        for (Texture t : new Texture[]{ grassTex, plainsTex, decorTex, fencesTex })
-            t.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+        Pixmap wp = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+        wp.setColor(Color.WHITE); wp.fill();
+        whitePixel = new Texture(wp);
+        wp.dispose();
+        rebuildTileRefs();
 
-        grassReg     = new TextureRegion(grassTex);                    // 16×16 completo
-        dirtReg      = new TextureRegion(plainsTex, 32, 16, 16, 16);   // tierra (col 2, fila 1)
-        rockReg      = new TextureRegion(decorTex,  32, 64, 16, 16);   // roca  (col 2, fila 4)
-        hFenceReg    = new TextureRegion(fencesTex, 32,  0, 16, 16);   // cerca horizontal (col 2, fila 0)
-        postReg      = new TextureRegion(fencesTex,  0,  0, 16, 16);   // poste (col 0, fila 0)
-
+        mapMtime = Gdx.files.internal(MAP_PATH).lastModified();
+        cfgMtime = Gdx.files.internal(TILESET_PATH).lastModified();
         MusicManager.play("audio/music/overworld.ogg");
 
         Gdx.input.setInputProcessor(new InputAdapter() {
@@ -210,6 +309,7 @@ public class OverworldScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        maybeHotReload();
         if (isMoving) (isRunning ? runSprite : walkSprite).update(delta);
         idleSprite.update(delta);
         updateMovement(delta);
@@ -236,7 +336,9 @@ public class OverworldScreen implements Screen {
                 if (!isMoving) {
                     int nc = playerCol + dc;
                     int nr = playerRow + dr;
-                    if (nr >= 0 && nr < MAP_ROWS && nc >= 0 && nc < MAP_COLS && isPassable(MAP.get(nc, nr))) {
+                    if (nr >= 0 && nr < MAP_ROWS && nc >= 0 && nc < MAP_COLS
+                            && isPassable(MAP.get(nc, nr)) && chestAt(nc, nr) == null
+                            && !houseBlocks(nc, nr)) {
                         boolean run = Gdx.input.isKeyPressed(Keys.SHIFT_LEFT)
                                    || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT);
                         playerCol    = nc;
@@ -258,9 +360,17 @@ public class OverworldScreen implements Screen {
                 state = OwState.PAUSED;
             }
             if (Gdx.input.isKeyJustPressed(Keys.TAB)) enterInventory();
+            if (Gdx.input.isKeyJustPressed(Keys.E))   tryInteract();
 
         } else if (state == OwState.INVENTORY) {
             handleInventoryInput();
+
+        } else if (state == OwState.REVEAL) {
+            if (Gdx.input.isKeyJustPressed(Keys.E) || Gdx.input.isKeyJustPressed(Keys.ENTER)
+                    || Gdx.input.isKeyJustPressed(Keys.ESCAPE)) {
+                state = OwState.EXPLORING;
+                revealItem = null;
+            }
 
         } else if (state == OwState.PAUSED) {
             if (Gdx.input.isKeyJustPressed(Keys.UP))     pauseSel = 0;
@@ -445,16 +555,16 @@ public class OverworldScreen implements Screen {
     }
 
     private boolean isPassable(int tile) {
-        return tile == PATH || tile == GRASS || tile == INN;
+        return !TILESET.def(tile).solid;
     }
 
     private void onStep() {
         SaveManager.save(player, playerCol, playerRow);
-        int tile = MAP.get(playerCol, playerRow);
-        if (tile == GRASS && Math.random() < 0.20) {
+        Tileset.TileDef d = TILESET.def(MAP.get(playerCol, playerRow));
+        if (d.encounter && Math.random() < 0.20) {
             Enemy enemy = spawnEnemy();
             game.setScreen(new BattleScreen(game, player, enemy, this));
-        } else if (tile == INN) {
+        } else if ("inn".equals(d.kind)) {
             int healed = player.getMaxHp() - player.getHp();
             if (healed > 0) {
                 player.heal(healed);
@@ -464,9 +574,9 @@ public class OverworldScreen implements Screen {
                 statusMsg = "Posada — aqui puedes descansar.";
             }
         } else {
-            statusMsg = tile == GRASS
+            statusMsg = d.encounter
                     ? "Hierba alta... algo puede acechar aqui."
-                    : "Camino seguro.";
+                    : "Todo tranquilo.";
         }
     }
 
@@ -498,12 +608,13 @@ public class OverworldScreen implements Screen {
         HdpiUtils.glViewport(0, STATUS_H, VIEW_W, VIEW_H);
         shapes.setProjectionMatrix(worldCam.combined);
         batch.setProjectionMatrix(worldCam.combined);
-        drawTerrain();           // texturas de pasto/tierra (batch)
-        drawWaterInn();          // agua + posada (shapes) sobre la base
-        drawFences();            // cerca del borde (batch)
-        drawTreeSprites(true);   // árboles al norte del jugador (detrás)
+        drawFloors();            // pisos (texturas/color) desde el tileset
+        drawFences();            // cerca (autotile borde)
+        drawChests();            // cofres (sprite)
+        drawHouse();             // posada (sprite)
+        drawObjects(true);       // objetos (árboles/rocas) detrás del jugador
         drawPlayer();
-        drawTreeSprites(false);  // árboles al sur del jugador (adelante)
+        drawObjects(false);      // objetos delante del jugador
 
         // ── Pasada de UI: fija, pantalla completa ──
         HdpiUtils.glViewport(0, 0, W + W_PANEL, H);
@@ -517,6 +628,62 @@ public class OverworldScreen implements Screen {
         if (state == OwState.PAUSED)     drawPauseOverlay();
         if (state == OwState.LOAD_MENU)  drawLoadMenuOverlay();
         if (state == OwState.HELP)       drawHelpOverlay();
+        if (state == OwState.REVEAL)     drawRevealOverlay();
+    }
+
+    // Cofres con sprite (16→32px). Abierto: atenuado (placeholder hasta tener
+    // un sprite de cofre abierto).
+    private void drawChests() {
+        if (chestReg == null) return;
+        batch.begin();
+        for (Chest c : chests) {
+            if (c.col < visC0 || c.col > visC1 || c.row < visR0 || c.row > visR1) continue;
+            int tx = c.col * TILE, ty = worldTileY(c.row);
+            if (c.opened) batch.setColor(0.5f, 0.5f, 0.5f, 1f);
+            batch.draw(chestReg, tx, ty, TILE, TILE);
+            if (c.opened) batch.setColor(Color.WHITE);
+        }
+        batch.end();
+    }
+
+    private void drawRevealOverlay() {
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0f, 0f, 0f, 0.62f);
+        shapes.rect(0, 0, W, H);
+        shapes.end();
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        int bw = 480, bh = 250, bx = W / 2 - bw / 2, by = H / 2 - bh / 2;
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.08f, 0.06f, 0.04f, 1);
+        shapes.rect(bx, by, bw, bh);
+        shapes.setColor(0.45f, 0.32f, 0.15f, 1);
+        shapes.rect(bx,          by + bh - 2, bw, 2);
+        shapes.rect(bx,          by,          bw, 2);
+        shapes.rect(bx,          by,          2,  bh);
+        shapes.rect(bx + bw - 2, by,          2,  bh);
+        // marco del ícono
+        int isz = 72, ix = W / 2 - isz / 2, iy = by + bh - 40 - isz;
+        shapes.setColor(0.69f, 0.57f, 0.41f, 1);
+        shapes.rect(ix - 4, iy - 4, isz + 8, isz + 8);
+        shapes.end();
+
+        batch.begin();
+        fontLg.setColor(new Color(1.0f, 0.82f, 0.35f, 1));
+        fontLg.draw(batch, "¡Obtuviste!", 0, by + bh - 14, W, Align.center, false);
+        if (revealItem != null) {
+            TextureRegion icon = ItemIcons.get(revealItem.getIconIndex());
+            if (icon != null) batch.draw(icon, ix, iy, isz, isz);
+            font.setColor(Color.WHITE);
+            font.draw(batch, revealItem.getName(), 0, iy - 14, W, Align.center, false);
+            font.setColor(new Color(0.82f, 0.74f, 0.55f, 1));
+            font.draw(batch, revealItem.getDescription(), bx + 26, iy - 40, bw - 52, Align.center, true);
+        }
+        font.setColor(new Color(0.55f, 0.55f, 0.55f, 1));
+        font.draw(batch, "[E] continuar", 0, by + 18, W, Align.center, false);
+        batch.end();
     }
 
     // ── Cámara del mundo: sigue al jugador, clampeada a los bordes del mapa ──
@@ -555,51 +722,48 @@ public class OverworldScreen implements Screen {
 
     private static int clampInt(int v, int lo, int hi) { return Math.max(lo, Math.min(hi, v)); }
 
-    // Base de terreno con texturas (pasto/tierra), dibujada a 2× (16→32px).
-    // El agua se omite acá: la pinta drawWaterInn por encima.
-    private void drawTerrain() {
+    // Pisos desde el tileset: floors dibujan su textura/región (con tinte) o un
+    // color sólido (agua). Los no-floor (objetos/cofre/posada/cerca) llevan una
+    // base de pasto debajo.
+    private void drawFloors() {
         batch.begin();
         for (int r = visR0; r <= visR1; r++) {
             for (int c = visC0; c <= visC1; c++) {
-                int t = MAP.get(c, r);
-                if (t == WATER) continue;
-                TextureRegion reg = (t == PATH || t == INN) ? dirtReg : grassReg;
-                batch.draw(reg, c * TILE, worldTileY(r), TILE, TILE);
+                Tileset.TileDef d = TILESET.def(MAP.get(c, r));
+                int tx = c * TILE, ty = worldTileY(r);
+                if ("floor".equals(d.kind)) {
+                    if (d.region != null) {
+                        if (d.tint != null) batch.setColor(d.tint);
+                        batch.draw(d.region, tx, ty, TILE, TILE);
+                        if (d.tint != null) batch.setColor(Color.WHITE);
+                    } else if (d.color != null) {
+                        batch.setColor(d.color);
+                        batch.draw(whitePixel, tx, ty, TILE, TILE);
+                        batch.setColor(Color.WHITE);
+                    }
+                } else if (groundReg != null) {
+                    batch.draw(groundReg, tx, ty, TILE, TILE);  // base bajo el objeto
+                }
             }
         }
         batch.end();
     }
 
-    // Agua y posada con ShapeRenderer, sobre la base de terreno.
-    private void drawWaterInn() {
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-        for (int r = visR0; r <= visR1; r++) {
-            for (int c = visC0; c <= visC1; c++) {
-                int tile = MAP.get(c, r);
-                if (tile != WATER && tile != INN) continue;
-                int tx = c * TILE;
-                int ty = worldTileY(r);
+    // Posada: sprite 3×4 tiles anclado con la puerta en INN_COL/INN_ROW.
+    private void drawHouse() {
+        if (houseReg == null) return;
+        int x = (INN_COL - 1) * TILE;   // 3 tiles de ancho, puerta al centro
+        int y = worldTileY(INN_ROW);    // base apoyada en la fila de la puerta
+        batch.begin();
+        batch.draw(houseReg, x, y, 96, 128);
+        batch.end();
+    }
 
-                if (tile == WATER) {
-                    shapes.setColor(TILE_COLOR[WATER]);
-                    shapes.rect(tx, ty, TILE, TILE);
-                    shapes.setColor(0.45f, 0.68f, 0.92f, 1);
-                    shapes.rect(tx + 3, ty + TILE / 2 - 2, TILE - 6, 4);
-                } else {  // INN
-                    shapes.setColor(0.65f, 0.22f, 0.18f, 1);
-                    shapes.rect(tx + 2, ty + TILE - 8, TILE - 4, 7);
-                    if (r == INN_ROW) {
-                        shapes.setColor(0.35f, 0.20f, 0.08f, 1);
-                        shapes.rect(tx + 11, ty + 2, 10, 14);
-                    } else {
-                        shapes.setColor(0.90f, 0.85f, 0.50f, 1);
-                        shapes.rect(tx + 7,  ty + 8, 8, 7);
-                        shapes.rect(tx + 18, ty + 8, 8, 7);
-                    }
-                }
-            }
-        }
-        shapes.end();
+    // El footprint de la casa (3×4) bloquea el paso, salvo la puerta.
+    private boolean houseBlocks(int col, int row) {
+        boolean inFootprint = col >= INN_COL - 1 && col <= INN_COL + 1
+                           && row >= INN_ROW - 3 && row <= INN_ROW;
+        return inFootprint && !(col == INN_COL && row == INN_ROW);
     }
 
     private void drawPlayer() {
@@ -611,48 +775,49 @@ public class OverworldScreen implements Screen {
         batch.end();
     }
 
-    // beforePlayer=true  → árboles en filas <= playerRow (norte/detrás del jugador)
-    // beforePlayer=false → árboles en filas >  playerRow (sur/delante del jugador)
-    private void drawTreeSprites(boolean beforePlayer) {
-        final int TREE_SIZE = TILE * 4;         // árboles 128px (4×TILE)
-        final int TREE_XOFF = TILE + TILE / 2;  // (128-32)/2 = 48px para centrar
-        final int ROCK_SIZE = TILE;             // roca 32px (16→2×), llena el tile
-
+    // Objetos del tileset (kind=object): sprite sobre la base, centrado y anclado
+    // al tile. Depth-sort por fila respecto del jugador (árboles altos tapan bien).
+    // beforePlayer=true → filas <= playerRow (detrás); false → filas > playerRow.
+    private void drawObjects(boolean beforePlayer) {
         batch.begin();
         for (int r = visR0; r <= visR1; r++) {
             boolean inPass = beforePlayer ? (r <= playerRow) : (r > playerRow);
             if (!inPass) continue;
             for (int c = visC0; c <= visC1; c++) {
-                if (MAP.get(c, r) != TREE) continue;
-                int h = scatterHash(r, c);
-                if (h % 7 == 0) {  // ~1 de cada 7 → roca, para aflojar la densidad
-                    batch.draw(rockReg, c * TILE, worldTileY(r), ROCK_SIZE, ROCK_SIZE);
-                } else {           // resto → variante de árbol
-                    Texture tex = treeTexs[h % treeTexs.length];
-                    batch.draw(tex, c * TILE - TREE_XOFF, worldTileY(r), TREE_SIZE, TREE_SIZE);
-                }
+                Tileset.TileDef d = TILESET.def(MAP.get(c, r));
+                if (!"object".equals(d.kind) || d.region == null) continue;
+                int off = (d.drawSize - TILE) / 2;   // centrar el sprite sobre el tile
+                batch.draw(d.region, c * TILE - off, worldTileY(r), d.drawSize, d.drawSize);
             }
         }
         batch.end();
     }
 
-    // Cerca del borde (y de cualquier tile 'F'): tramo horizontal arriba/abajo, poste en laterales.
+    // Cerca (kind=fence): autotile según vecinos horizontales. Con vecino a
+    // ambos lados → tramo del medio; solo a un lado → punta; sin vecinos
+    // horizontales → poste (las corridas verticales quedan en postes, que es
+    // como está armado este sheet).
     private void drawFences() {
+        if (fencePostReg == null) return;
         batch.begin();
         for (int r = visR0; r <= visR1; r++) {
             for (int c = visC0; c <= visC1; c++) {
-                if (MAP.get(c, r) != FENCE) continue;
-                boolean horizontal = (r == 0 || r == MAP_ROWS - 1) && c > 0 && c < MAP_COLS - 1;
-                batch.draw(horizontal ? hFenceReg : postReg, c * TILE, worldTileY(r), TILE, TILE);
+                if (!isFence(c, r)) continue;
+                boolean left  = isFence(c - 1, r);
+                boolean right = isFence(c + 1, r);
+                TextureRegion reg = (left && right) ? fenceMidReg
+                                  : right           ? fenceLeftReg
+                                  : left            ? fenceRightReg
+                                  :                   fencePostReg;
+                batch.draw(reg, c * TILE, worldTileY(r), TILE, TILE);
             }
         }
         batch.end();
     }
 
-    // Hash determinista por celda (mismo resultado cada frame, sin parpadeo)
-    private static int scatterHash(int r, int c) {
-        int h = (r * 73856093) ^ (c * 19349663);
-        return (h >>> 1) % 1000;
+    private boolean isFence(int col, int row) {
+        return col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS
+            && "fence".equals(TILESET.def(MAP.get(col, row)).kind);
     }
 
     // Coord. de mundo (Y hacia arriba, origen abajo-izquierda del mapa):
@@ -835,11 +1000,7 @@ public class OverworldScreen implements Screen {
         runSprite.dispose();
         idleSprite.dispose();
         mainTilesTex.dispose();
-        for (Texture t : treeTexs) t.dispose();
-        grassTex.dispose();
-        plainsTex.dispose();
-        decorTex.dispose();
-        fencesTex.dispose();
+        whitePixel.dispose();
         playerPanel.dispose();
     }
 }
