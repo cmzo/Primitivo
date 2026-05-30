@@ -17,7 +17,10 @@ import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.Align;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class OverworldScreen implements Screen {
 
@@ -127,8 +130,9 @@ public class OverworldScreen implements Screen {
     private Texture            mainTilesTex;
     private NinePatch          panelPatch;
     // Referencias derivadas del Tileset (se rearman en rebuildTileRefs)
-    private TextureRegion      groundReg;  // base de pasto bajo objetos/especiales
-    private TextureRegion      chestReg;   // sprite de cofre (kind chest)
+    private TextureRegion      groundReg;    // base de pasto bajo objetos/especiales
+    private TextureRegion      chestReg;     // cofre cerrado (frame 0 del sheet)
+    private TextureRegion      chestOpenReg; // cofre abierto (frame 3 del sheet)
     private TextureRegion      houseReg;   // sprite de posada (kind inn)
     private TextureRegion      fencePostReg;   // poste suelto / vertical
     private TextureRegion      fenceLeftReg;   // punta izquierda (riel a la derecha)
@@ -174,6 +178,25 @@ public class OverworldScreen implements Screen {
             for (int c = 0; c < MAP_COLS; c++)
                 if ("chest".equals(TILESET.def(MAP.get(c, r)).kind))
                     chests.add(new Chest(c, r, lootForChest(i++)));
+        // Restaurar cofres ya abiertos desde el save
+        String csv = SaveManager.loadChests(activeSlot);
+        if (!csv.isEmpty()) {
+            Set<String> opened = new HashSet<>(Arrays.asList(csv.split(";")));
+            for (Chest c : chests) if (opened.contains(c.col + "," + c.row)) c.opened = true;
+        }
+    }
+
+    private String openedChestsCsv() {
+        StringBuilder sb = new StringBuilder();
+        for (Chest c : chests) if (c.opened) {
+            if (sb.length() > 0) sb.append(';');
+            sb.append(c.col).append(',').append(c.row);
+        }
+        return sb.toString();
+    }
+
+    private void persistChests() {
+        SaveManager.saveChests(activeSlot, openedChestsCsv());
     }
 
     // Botín por cofre (en orden de aparición). Devolvé una instancia NUEVA por
@@ -228,6 +251,11 @@ public class OverworldScreen implements Screen {
         groundReg = TILESET.ground();
         Tileset.TileDef chestDef = TILESET.firstOfKind("chest");
         chestReg  = (chestDef != null) ? chestDef.region : null;
+        chestOpenReg = null;
+        if (chestDef != null && chestDef.region != null && chestDef.region.getTexture().getWidth() >= 64) {
+            // sheet 64×16: frame 0 = cerrado, frame 3 (x=48) = abierto
+            chestOpenReg = new TextureRegion(chestDef.region.getTexture(), 48, 0, 16, 16);
+        }
         Tileset.TileDef innDef = TILESET.firstOfKind("inn");
         houseReg  = (innDef != null) ? innDef.region : null;
         Tileset.TileDef fenceDef = TILESET.firstOfKind("fence");
@@ -256,6 +284,7 @@ public class OverworldScreen implements Screen {
             ItemIcons.get(c.item.getIconIndex());  // precargá el ícono fuera del batch
             revealItem = c.item;
             state = OwState.REVEAL;
+            persistChests();
         }
     }
 
@@ -656,9 +685,11 @@ public class OverworldScreen implements Screen {
         for (Chest c : chests) {
             if (c.col < visC0 || c.col > visC1 || c.row < visR0 || c.row > visR1) continue;
             int tx = c.col * TILE, ty = worldTileY(c.row);
-            if (c.opened) batch.setColor(0.5f, 0.5f, 0.5f, 1f);
-            batch.draw(chestReg, tx, ty, TILE, TILE);
-            if (c.opened) batch.setColor(Color.WHITE);
+            // Cofre abierto usa su frame; si el sheet no lo trae, atenúa el cerrado.
+            TextureRegion reg = (c.opened && chestOpenReg != null) ? chestOpenReg : chestReg;
+            if (c.opened && chestOpenReg == null) batch.setColor(0.5f, 0.5f, 0.5f, 1f);
+            batch.draw(reg, tx, ty, TILE, TILE);
+            if (c.opened && chestOpenReg == null) batch.setColor(Color.WHITE);
         }
         batch.end();
     }

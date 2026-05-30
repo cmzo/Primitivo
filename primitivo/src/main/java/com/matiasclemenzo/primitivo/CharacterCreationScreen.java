@@ -125,6 +125,7 @@ public class CharacterCreationScreen implements Screen {
             default: charClass = new Fighter(); break;
         }
         Player player = new Player(nameBuffer.toString().trim(), RACES[selectedRace], charClass);
+        SaveManager.saveChests(0, "");   // partida nueva: cofres sin abrir
         game.setScreen(new OverworldScreen(game, player));
     }
 

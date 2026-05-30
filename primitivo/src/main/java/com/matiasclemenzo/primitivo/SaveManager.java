@@ -82,6 +82,18 @@ public class SaveManager {
         return new SlotInfo(slot, p.getString("name", "?"), p.getInteger("level", 1), true);
     }
 
+    // ── Cofres abiertos (CSV "col,row;col,row") ────────────────────────────
+
+    public static void saveChests(int slot, String openedCsv) {
+        Preferences p = Gdx.app.getPreferences(prefsKey(slot));
+        p.putString("chests", openedCsv);
+        p.flush();
+    }
+
+    public static String loadChests(int slot) {
+        return Gdx.app.getPreferences(prefsKey(slot)).getString("chests", "");
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static void writePlayer(Preferences p, Player player) {

@@ -108,9 +108,10 @@
 - [x] Cofres como fuente de ítems (con reveal)
 - [x] **Equipamiento funcional** — el arma suma al ataque y la armadura reduce el daño; ATK/DEF y comparación en el panel
 - [x] **Persistencia del inventario** — mochila + equipado se guardan/cargan (serialización en `SaveManager`)
-- [ ] **Persistencia del estado de cofres** (abierto) en el save — hoy reaparecen al recargar
-- [ ] **Descartar ítems** (`X` con confirmación)
+- [x] **Persistencia del estado de cofres** — se guardan los abiertos; sprite de cofre abierto (frame del sheet); partida nueva los resetea
 - [ ] **Loot de enemigos** — drop post-batalla + pantalla de elección + tabla de drops por enemigo/nivel
+- [ ] **Descartar ítems** (`X` con confirmación)
+- [ ] **Varios tipos de cofre** (si subís más sprites) — asignar sprite/loot por cofre
 - [ ] Curva de dificultad — enemigos por zona, no solo por nivel
 
 ### Flujo de inicio / sesiones (rediseño, a futuro)
@@ -135,12 +136,6 @@
 
 ## Backlog
 
-### Progresión
-- [ ] Curva de dificultad — enemigos más fuertes por zona, no solo por nivel del jugador
-- [ ] **Pantalla de looteo post-batalla** — al derrotar un enemigo, mostrar los ítems dropeados antes de volver al overworld; el jugador elige qué tomar
-- [ ] **Inventario interactivo** — pantalla dedicada (tecla I o Tab) donde se puede ver, equipar y descartar ítems de forma rápida e intuitiva; equipar debe sentirse satisfactorio (preview de stats, comparación con lo equipado)
-- [ ] Equipamiento funcional — aplicar stats de Weapon/Armor al daño/defensa en batalla
-
 ### Contenido
 - [ ] Más tipos de enemigos con sprites propios (Goblin, Esqueleto, Bandido, Rata Gigante)
 - [ ] NPCs en el mapa con los que hablar (Q para interactuar)
@@ -153,9 +148,6 @@
 - [ ] Múltiples frames de animación del jugador en overworld (walk vs idle vs combat)
 - [ ] Animación de ataque en batalla (sprite del jugador se desplaza hacia el enemigo)
 - [ ] UI icons para ítems y habilidades
-
-### Progresión (continuación)
-- [ ] Curva de dificultad — enemigos más fuertes por zona, no solo por nivel del jugador
 
 ### Técnico
 - [ ] Separar lógica de combate de `BattleScreen` a una clase `BattleSystem`
