@@ -20,16 +20,14 @@ import java.util.List;
 
 public class OverworldScreen implements Screen {
 
-    // Layout — mismo esquema que BattleScreen
-    private static final int W       = 800;
-    private static final int W_PANEL = 480;
-    private static final int H       = 720;
-    private static final int TILE    = 32;
-    private static final int COLS    = W / TILE;          // 25
-    private static final int ROWS    = (H - 16) / TILE;   // 22, bottom 16px = barra de estado
-    private static final int PX      = W;
-    private static final int CX      = PX + 18;
-    private static final int CW      = W_PANEL - 36;
+    // Layout
+    private static final int W        = 800;   // ancho del área de juego (viewport del mundo)
+    private static final int W_PANEL  = 480;   // panel lateral
+    private static final int H        = 720;
+    private static final int TILE     = 32;
+    private static final int STATUS_H = 32;    // barra de estado inferior
+    private static final int VIEW_W   = W;           // viewport del mundo: ancho
+    private static final int VIEW_H   = H - STATUS_H; // viewport del mundo: alto (sobre la barra)
 
     // Tipos de tile
     private static final int PATH  = 0;
@@ -57,48 +55,12 @@ public class OverworldScreen implements Screen {
         new Color(0.55f, 0.42f, 0.20f, 1),
     };
 
-    // Mapa 25×22 — T=árbol, G=hierba, .=camino, W=agua, I=posada
-    private static final int[][] MAP;
-    static {
-        String[] src = {
-            "TTTTTTTTTTTTTTTTTTTTTTTTT",  // 0
-            "TIIGGG..........GGGGG...T",  // 1  ← posada (2×2)
-            "TIIGGG..GGGG....GGGGG...T",  // 2  ← posada
-            "T......GGGG.............T",  // 3
-            "T......GGGG.............T",  // 4
-            "T.......................T",  // 5
-            "TGG.........TT..........T",  // 6
-            "TGG.........TT..........T",  // 7
-            "T...........TT..........T",  // 8
-            "T...........TT..........T",  // 9
-            "T...........TT..........T",  // 10
-            "T.......................T",  // 11 ← punto de inicio
-            "T.......................T",  // 12
-            "T........TT.............T",  // 13
-            "T........TT.....GGGGG...T",  // 14
-            "TGGG.....TT.....GGGGG...T",  // 15
-            "TGGG.....TT...........GGT",  // 16
-            "TGGG.............WWWWW..T",  // 17
-            "T................WWWWW..T",  // 18
-            "T................WWWWW..T",  // 19
-            "T.......................T",  // 20
-            "TTTTTTTTTTTTTTTTTTTTTTTTT",  // 21
-        };
-        MAP = new int[ROWS][COLS];
-        for (int r = 0; r < ROWS; r++) {
-            String row = src[r];
-            for (int c = 0; c < COLS; c++) {
-                char ch = (c < row.length()) ? row.charAt(c) : '.';
-                switch (ch) {
-                    case 'G': MAP[r][c] = GRASS; break;
-                    case 'T': MAP[r][c] = TREE;  break;
-                    case 'W': MAP[r][c] = WATER; break;
-                    case 'I': MAP[r][c] = INN;   break;
-                    default:  MAP[r][c] = PATH;  break;
-                }
-            }
-        }
-    }
+    // Mapa del overworld, cargado desde un archivo externo (ver TileMap).
+    // Más grande que el viewport → hay scroll. Se carga una sola vez al
+    // referenciar la clase (Gdx ya está inicializado para entonces).
+    private static final TileMap MAP      = new TileMap("maps/overworld.txt");
+    private static final int     MAP_ROWS = MAP.rows;
+    private static final int     MAP_COLS = MAP.cols;
 
     private enum OwState { EXPLORING, PAUSED, COMMAND, LOAD_MENU, HELP }
 
@@ -130,7 +92,8 @@ public class OverworldScreen implements Screen {
     private static final int   IDLE_FRAME_W = 64;
     private static final int   IDLE_FRAME_H = 64;
 
-    private OrthographicCamera camera;
+    private OrthographicCamera worldCam;  // sigue al jugador, scrollea
+    private OrthographicCamera uiCam;     // fija: barra de estado, panel, overlays
     private SpriteBatch        batch;
     private ShapeRenderer      shapes;
     private BitmapFont         font;    // 10px  barra de estado + overlays
@@ -144,7 +107,7 @@ public class OverworldScreen implements Screen {
     private PlayerPanel        playerPanel;
 
     public OverworldScreen(PrimitivoGame game, Player player) {
-        this(game, player, COLS / 2, ROWS / 2, null, 0);
+        this(game, player, MAP_COLS / 2, MAP_ROWS / 2, null, 0);
     }
 
     public OverworldScreen(PrimitivoGame game, Player player, int startCol, int startRow) {
@@ -163,7 +126,7 @@ public class OverworldScreen implements Screen {
         this.activeSlot = activeSlot;
         if (initialMsg != null) this.statusMsg = initialMsg;
         this.visualX    = startCol * TILE - TILE;
-        this.visualY    = H - (startRow + 1) * TILE - TILE;
+        this.visualY    = worldTileY(startRow) - TILE;
         this.targetX    = this.visualX;
         this.targetY    = this.visualY;
         this.startVisX  = this.visualX;
@@ -174,8 +137,10 @@ public class OverworldScreen implements Screen {
 
     @Override
     public void show() {
-        camera      = new OrthographicCamera();
-        camera.setToOrtho(false, W + W_PANEL, H);
+        worldCam    = new OrthographicCamera();
+        worldCam.setToOrtho(false, VIEW_W, VIEW_H);
+        uiCam       = new OrthographicCamera();
+        uiCam.setToOrtho(false, W + W_PANEL, H);
         batch       = new SpriteBatch();
         shapes      = new ShapeRenderer();
         font        = Fonts.build(10);
@@ -235,13 +200,13 @@ public class OverworldScreen implements Screen {
                 if (!isMoving) {
                     int nc = playerCol + dc;
                     int nr = playerRow + dr;
-                    if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && isPassable(MAP[nr][nc])) {
+                    if (nr >= 0 && nr < MAP_ROWS && nc >= 0 && nc < MAP_COLS && isPassable(MAP.get(nc, nr))) {
                         playerCol  = nc;
                         playerRow  = nr;
                         startVisX  = visualX;
                         startVisY  = visualY;
                         targetX    = nc * TILE - TILE;
-                        targetY    = H - (nr + 1) * TILE - TILE;
+                        targetY    = worldTileY(nr) - TILE;
                         moveTimer  = 0f;
                         isMoving   = true;
                         walkSprite.reset();
@@ -365,7 +330,7 @@ public class OverworldScreen implements Screen {
 
     private void onStep() {
         SaveManager.save(player, playerCol, playerRow);
-        int tile = MAP[playerRow][playerCol];
+        int tile = MAP.get(playerCol, playerRow);
         if (tile == GRASS && Math.random() < 0.20) {
             Enemy enemy = spawnEnemy();
             game.setScreen(new BattleScreen(game, player, enemy, this));
@@ -406,14 +371,23 @@ public class OverworldScreen implements Screen {
     private void draw() {
         Gdx.gl.glClearColor(0.08f, 0.08f, 0.13f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        camera.update();
-        shapes.setProjectionMatrix(camera.combined);
-        batch.setProjectionMatrix(camera.combined);
 
+        // ── Pasada del mundo: scrollea, recortada al área de juego sobre la barra ──
+        updateWorldCamera();
+        computeVisibleRange();
+        HdpiUtils.glViewport(0, STATUS_H, VIEW_W, VIEW_H);
+        shapes.setProjectionMatrix(worldCam.combined);
+        batch.setProjectionMatrix(worldCam.combined);
         drawMap();
         drawTreeSprites(true);   // árboles al norte del jugador (detrás)
         drawPlayer();
         drawTreeSprites(false);  // árboles al sur del jugador (adelante)
+
+        // ── Pasada de UI: fija, pantalla completa ──
+        HdpiUtils.glViewport(0, 0, W + W_PANEL, H);
+        uiCam.update();
+        shapes.setProjectionMatrix(uiCam.combined);
+        batch.setProjectionMatrix(uiCam.combined);
         drawStatusBar();
         drawSidePanel();
 
@@ -422,13 +396,49 @@ public class OverworldScreen implements Screen {
         if (state == OwState.HELP)       drawHelpOverlay();
     }
 
+    // ── Cámara del mundo: sigue al jugador, clampeada a los bordes del mapa ──
+
+    private int visC0, visC1, visR0, visR1;  // rango de tiles visibles (con margen)
+
+    private void updateWorldCamera() {
+        float halfW = VIEW_W / 2f, halfH = VIEW_H / 2f;
+        float mapW  = MAP_COLS * TILE, mapH = MAP_ROWS * TILE;
+        // centro del jugador en mundo (sprite de 3·TILE centrado sobre su tile)
+        float px = visualX + TILE * 1.5f;
+        float py = visualY + TILE * 1.5f;
+        worldCam.position.set(clampCam(px, halfW, mapW), clampCam(py, halfH, mapH), 0);
+        worldCam.update();
+    }
+
+    // Si el mapa es más chico que el viewport en un eje, lo centra
+    private float clampCam(float v, float half, float mapSize) {
+        if (mapSize <= half * 2f) return mapSize / 2f;
+        return Math.max(half, Math.min(mapSize - half, v));
+    }
+
+    private void computeVisibleRange() {
+        float halfW = VIEW_W / 2f, halfH = VIEW_H / 2f;
+        float left   = worldCam.position.x - halfW;
+        float right  = worldCam.position.x + halfW;
+        float bottom = worldCam.position.y - halfH;
+        float top    = worldCam.position.y + halfH;
+        int margin = 3;  // holgura para árboles (sprites 4·TILE que sobresalen del tile)
+        visC0 = clampInt((int) Math.floor(left  / TILE) - margin, 0, MAP_COLS - 1);
+        visC1 = clampInt((int) Math.floor(right / TILE) + margin, 0, MAP_COLS - 1);
+        // fila ↔ mundo: worldTileY(r) = (MAP_ROWS-1-r)·TILE  ⇒  r = MAP_ROWS-1 - y/TILE
+        visR0 = clampInt(MAP_ROWS - 1 - (int) Math.floor(top    / TILE) - margin, 0, MAP_ROWS - 1);
+        visR1 = clampInt(MAP_ROWS - 1 - (int) Math.floor(bottom / TILE) + margin, 0, MAP_ROWS - 1);
+    }
+
+    private static int clampInt(int v, int lo, int hi) { return Math.max(lo, Math.min(hi, v)); }
+
     private void drawMap() {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
-        for (int r = 0; r < ROWS; r++) {
-            for (int c = 0; c < COLS; c++) {
-                int tile = MAP[r][c];
+        for (int r = visR0; r <= visR1; r++) {
+            for (int c = visC0; c <= visC1; c++) {
+                int tile = MAP.get(c, r);
                 int tx   = c * TILE;
-                int ty   = tileY(r);
+                int ty   = worldTileY(r);
 
                 // Base tile
                 shapes.setColor(TILE_COLOR[tile]);
@@ -448,7 +458,7 @@ public class OverworldScreen implements Screen {
                     shapes.setColor(0.65f, 0.22f, 0.18f, 1);
                     shapes.rect(tx + 2, ty + TILE - 8, TILE - 4, 7);
                     // Puerta (solo en la fila inferior del bloque INN = row 2)
-                    if (MAP[r][c] == INN && r == INN_ROW) {
+                    if (r == INN_ROW) {
                         shapes.setColor(0.35f, 0.20f, 0.08f, 1);
                         shapes.rect(tx + 11, ty + 2, 10, 14);
                     } else {
@@ -478,13 +488,13 @@ public class OverworldScreen implements Screen {
         final int XOFF = TILE + TILE / 2;  // (128-32)/2 = 48px para centrar
 
         batch.begin();
-        for (int r = 0; r < ROWS; r++) {
+        for (int r = visR0; r <= visR1; r++) {
             boolean inPass = beforePlayer ? (r <= playerRow) : (r > playerRow);
             if (!inPass) continue;
-            for (int c = 0; c < COLS; c++) {
-                if (MAP[r][c] != TREE) continue;
+            for (int c = visC0; c <= visC1; c++) {
+                if (MAP.get(c, r) != TREE) continue;
                 int tx = c * TILE - XOFF;
-                int ty = tileY(r);
+                int ty = worldTileY(r);
                 Texture tex = ((r + c) % 2 == 0) ? treeTex2 : treeTex3;
                 batch.draw(tex, tx, ty, SIZE, SIZE);
             }
@@ -492,12 +502,11 @@ public class OverworldScreen implements Screen {
         batch.end();
     }
 
-    // y en LibGDX va hacia arriba; fila 0 del mapa = parte superior de pantalla
-    private int tileY(int row) {
-        return H - (row + 1) * TILE;
+    // Coord. de mundo (Y hacia arriba, origen abajo-izquierda del mapa):
+    // fila 0 = arriba del mapa → la Y más alta.
+    private static int worldTileY(int row) {
+        return (MAP_ROWS - 1 - row) * TILE;
     }
-
-    private static final int STATUS_H = 32;
 
     private void drawStatusBar() {
         shapes.begin(ShapeRenderer.ShapeType.Filled);

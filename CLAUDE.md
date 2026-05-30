@@ -57,10 +57,14 @@ PrimitivoGame.create()
 
 **Screens:**
 - `CharacterCreationScreen` — step flow NAME→RACE→CLASS, live stat preview, keyboard name input via `isKeyJustPressed(Keys.A–Z)`
-- `OverworldScreen` — 25×22 tile map (TILE=32px), arrow key movement, 20% encounter chance on grass tiles, auto-save on each step, pause menu (ESC)
+- `OverworldScreen` — scrolling tile map loaded from `assets/maps/overworld.txt` via `TileMap` (TILE=32px; map larger than the viewport). Grid movement with smooth lerp, camera follows the player clamped to map bounds, only visible tiles drawn (culling), 20% encounter chance on grass, auto-save on each step, pause menu (ESC), Vim-style commands (`:wq`, `:q!`, `:load`…)
 - `BattleScreen` — 4-state machine (PLAYER_MENU → AFTER_PLAYER_ACTION → enemy turn → BATTLE_END), skill sub-menu, pause overlay
 
-**Rendering:** `ShapeRenderer` for filled rectangles (map tiles, HP bars, UI backgrounds), `SpriteBatch`+`BitmapFont` for text and sprites. Camera: `OrthographicCamera.setToOrtho(false, 1280, 720)`. Never mix `shapes.begin()` and `batch.begin()` — always end one before starting the other.
+**Rendering:** `ShapeRenderer` for filled rectangles (map tiles, HP bars, UI backgrounds), `SpriteBatch`+`BitmapFont` for text and sprites. The overworld uses **two cameras**: a **world camera** that scrolls/follows the player (drawn into the left game area via `HdpiUtils.glViewport`) and a fixed **UI camera** for the side panel and status bar. `BattleScreen` uses a single `OrthographicCamera.setToOrtho(false, 1280, 720)`. Never mix `shapes.begin()` and `batch.begin()` — always end one before starting the other.
+
+**Tile map:** `TileMap` loads the overworld grid from an external text file (`assets/maps/overworld.txt`), one row per line. Each cell is a char (`T`=tree, `G`=grass, `.`=path, `W`=water, `I`=inn), a single digit (0–4), or comma-separated ints; `#` lines and blanks are comments. Rows may vary in length (padded with path) and the outer border is forced to trees. World coords are y-up with origin at the map's bottom-left (`worldTileY(row)`); edit the file and relaunch without recompiling.
+
+**Side panel:** `PlayerPanel` is a shared component (used by both `OverworldScreen` and `BattleScreen`) built from independent boxes — `PanelBox` + `VStack` + a `Pen` layout cursor that measures height instead of hardcoding it. Boxes: header, stats+portrait row (`HBox`), equipment, skills, inventory.
 
 **Sprites:** `SpriteSheet` helper wraps a `Texture`, advances a frame timer each `render(delta)`, and extracts `TextureRegion` frames from a grid. Direction rows for the craftpix top-down swordsman: `DIR_DOWN=0`, `DIR_LEFT=1`, `DIR_RIGHT=2`, `DIR_UP=3`. Overworld player drawn at 3×TILE (96×96) centered.
 
@@ -77,6 +81,8 @@ assets/
     enemies/           ← enemy sprite sheets
   tiles/
     overworld/         ← terrain tile textures
+  maps/
+    overworld.txt      ← tile map grid (chars or ints), loaded by TileMap
   ui/
     icons/             ← item/skill icons
     fonts/             ← bitmap fonts
@@ -94,7 +100,7 @@ LWJGL3/GLFW requires the main thread. Use `mvn exec:exec` (forks JVM with `-Xsta
 ## Known gaps / next priorities
 
 See `TAREAS.md` for the full task list. Short version of what's next:
-- Save slots + Vim-style commands (`:s`, `:qs`, `:q!`)
-- Defeat → respawn at inn instead of game over
-- XP/level-up flow
-- Tile textures replacing `ShapeRenderer` rectangles
+- Title/start screen (new game / load / options) — the game currently boots straight into play
+- Enemy sprites + battle layout/animations
+- Tiled (`.tmx`) + a real tileset PNG replacing the `ShapeRenderer` rectangles (phase D of the map work)
+- Interactive inventory + functional equipment (apply Weapon/Armor stats)

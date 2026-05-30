@@ -61,9 +61,29 @@
 - [x] **Pulido visual** — franja de título pegada al borde superior, retrato sin doble marco, "Lv.N" respetando el padding
 - [x] **`PlayerPanel`** — componente común del panel lateral compartido por `OverworldScreen` y `BattleScreen` (antes la batalla tenía su propio panel hardcodeado con coordenadas Y absolutas y fondo de madera distinto)
 
+### Fase 5 — Mundo con scroll y mapa externo
+- [x] **Cámaras separadas** — `worldCam` (sigue al jugador, scrollea) y `uiCam` (fija: panel + barra de estado), dos pasadas con `HdpiUtils.glViewport`. Arregla el acople que movía el panel junto al mundo
+- [x] **Coordenadas de mundo** — origen abajo-izquierda, Y hacia arriba (`worldTileY`); el mundo deja de estar atado a coords de pantalla
+- [x] **Scroll con seguimiento + clamp** — la cámara se centra en el jugador y se frena en los bordes del mapa (centra el mapa si es más chico que el viewport)
+- [x] **Culling** — solo se dibujan los tiles visibles (con margen para árboles que sobresalen), no las ~1200 celdas del mapa
+- [x] **Mapa agrandado** — de 25×22 (exacto a una pantalla) a 40×30, con borde de árboles forzado por código
+- [x] **`TileMap` + mapa externo** — el mapa se carga desde `assets/maps/overworld.txt` (grilla de letras, dígitos 0-4 o ints separados por coma; `#`=comentarios). Editar y relanzar sin recompilar Java
+- [ ] *(Fase D pendiente)* Tiled (`.tmx`) + tileset PNG real con capas de colisión/objetos
+
 ---
 
 ## Próximo
+
+### Pantalla de inicio / menú principal
+> **Problema actual:** el juego entra directo. `PrimitivoGame.create()` va a
+> `OverworldScreen` si hay save o a `CharacterCreationScreen` si no — no hay forma
+> de elegir empezar una partida nueva cuando ya existe un guardado.
+- [ ] **Pantalla de título** al arrancar con el nombre del juego (Primitivo) y un menú
+- [ ] **Nueva partida** — siempre disponible; lleva a `CharacterCreationScreen` (avisar/confirmar si va a pisar un save existente, o usar otro slot)
+- [ ] **Cargar partida** — abrir el selector de slots (reutilizar el overlay `:load` de OverworldScreen)
+- [ ] **Opciones** — placeholder (audio, controles…) para más adelante
+- [ ] **Salir** — `Gdx.app.exit()`
+- [ ] Enrutar `PrimitivoGame.create()` a esta pantalla en vez de saltar directo al juego
 
 ### Battle screen visual
 - [ ] Sprites de enemigos en batalla (al menos 3-4 tipos básicos)
@@ -110,7 +130,6 @@
 ### Técnico
 - [ ] Separar lógica de combate de `BattleScreen` a una clase `BattleSystem`
 - [ ] Sistema de diálogo reutilizable (caja de texto con avance por ENTER)
-- [ ] Pantalla de título con opciones Nueva Partida / Cargar / Salir
 - [ ] Soporte para guardado en múltiples plataformas (Android, Web via TeaVM)
 - [ ] Audio — música de fondo por zona, efectos de sonido para ataques
 

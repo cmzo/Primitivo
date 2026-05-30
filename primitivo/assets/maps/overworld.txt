@@ -1,0 +1,33 @@
+# Overworld de Primitivo
+# T=arbol  G=hierba  .=camino  W=agua  I=posada   (tambien admite numeros 0-4 o "2,1,0,..")
+# El borde exterior se fuerza a arboles; las filas pueden ser mas cortas (se rellenan con camino).
+TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
+TIIGGG..........GGGGG.......TT.........T
+TIIGGG..GGGG....GGGGG.......TT.........T
+T......GGGG.................TT.........T
+T......GGGG..........GGGGG.............T
+T....................GGGGG.............T
+TGG.........TT.......GGGGG.............T
+TGG.........TT........................T
+T...........TT........................T
+T...........TT.....WWWWWW.............T
+T..................WWWWWW.............T
+T..................WWWWWW.............T
+T.....................................T
+T........TT...........................T
+T........TT.....GGGGG.................T
+TGGG.....TT.....GGGGG.................T
+TGGG.....TT...........GG..............T
+TGGG.................................T
+T....................................T
+T......GGGGG.........TTTT.............T
+T......GGGGG.........TTTT.............T
+T...................TTTT..............T
+T...........................GGGGG.....T
+TGG.........................GGGGG.....T
+TGG...................................T
+T....TT...............................T
+T....TT.......GGG.....................T
+T.............GGG.....................T
+T.....................................T
+TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
