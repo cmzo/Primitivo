@@ -1,6 +1,7 @@
 # Overworld de Primitivo
-# T=arbol  G=hierba  .=camino  W=agua  I=posada   (tambien admite numeros 0-4 o "2,1,0,..")
-# El borde exterior se fuerza a arboles; las filas pueden ser mas cortas (se rellenan con camino).
+# Letras:  .=camino  G=hierba  T=arbol  W=agua  I=posada  F=cerca   (o numeros 0-5, o "2,1,0,..")
+# El borde exterior se fuerza a CERCA (TileMap). Las filas pueden ser mas cortas (se rellenan con camino).
+# Que PNG usa cada letra: ver TileMap.charToTile (letra->tipo) y OverworldScreen show()/drawTerrain (tipo->png).
 TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 TIIGGG..........GGGGG.......TT.........T
 TIIGGG..GGGG....GGGGG.......TT.........T

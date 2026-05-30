@@ -35,6 +35,7 @@ public class OverworldScreen implements Screen {
     private static final int TREE  = 2;
     private static final int WATER = 3;
     private static final int INN   = 4;
+    private static final int FENCE = 5;
 
     // Punto de reaparición tras derrota
     public static final int INN_COL = 2;
@@ -65,6 +66,7 @@ public class OverworldScreen implements Screen {
     private enum OwState { EXPLORING, PAUSED, COMMAND, LOAD_MENU, HELP }
 
     private static final String WALK_PATH = "sprites/characters/swordsman/lvl1/walk.png";
+    private static final String RUN_PATH  = "sprites/characters/swordsman/lvl1/run.png";
     private static final int FRAME_W = 64;
     private static final int FRAME_H = 64;
 
@@ -80,8 +82,11 @@ public class OverworldScreen implements Screen {
     private int     activeSlot = 0;
     private String  cmdBuffer  = "";
 
-    // Smooth movement
-    private static final float MOVE_DURATION = 0.12f;
+    // Smooth movement — caminar / correr (Shift)
+    private static final float WALK_STEP = 0.16f;  // duración de un paso caminando
+    private static final float RUN_STEP  = 0.09f;  // ídem corriendo (Shift)
+    private float   moveDuration = WALK_STEP;
+    private boolean isRunning;
     private float visualX, visualY;
     private float startVisX, startVisY;
     private float targetX, targetY;
@@ -99,11 +104,20 @@ public class OverworldScreen implements Screen {
     private BitmapFont         font;    // 10px  barra de estado + overlays
     private BitmapFont         fontLg;  // 16px  títulos de overlays
     private SpriteSheet        walkSprite;
+    private SpriteSheet        runSprite;
     private SpriteSheet        idleSprite;
     private Texture            mainTilesTex;
     private NinePatch          panelPatch;
-    private Texture            treeTex2;
-    private Texture            treeTex3;
+    private Texture[]          treeTexs;   // variantes de árbol (128×128)
+    private Texture            grassTex;
+    private Texture            plainsTex;
+    private Texture            decorTex;   // decor_16x16 (rocas, etc.)
+    private Texture            fencesTex;  // cerca de madera
+    private TextureRegion      grassReg;   // tile de pasto (16×16)
+    private TextureRegion      dirtReg;    // tile de tierra (plains, celda 2,1)
+    private TextureRegion      rockReg;    // roca (decor_16x16 celda 2,4)
+    private TextureRegion      hFenceReg;  // tramo de cerca horizontal (fences 2,0)
+    private TextureRegion      postReg;    // poste de cerca (fences 0,0)
     private PlayerPanel        playerPanel;
 
     public OverworldScreen(PrimitivoGame game, Player player) {
@@ -145,15 +159,34 @@ public class OverworldScreen implements Screen {
         shapes      = new ShapeRenderer();
         font        = Fonts.build(10);
         fontLg      = Fonts.build(16);
-        walkSprite   = new SpriteSheet(WALK_PATH, FRAME_W, FRAME_H, 0.12f);
+        walkSprite   = new SpriteSheet(WALK_PATH, FRAME_W, FRAME_H, 0.10f);
+        runSprite    = new SpriteSheet(RUN_PATH,  FRAME_W, FRAME_H, 0.07f);
         idleSprite   = new SpriteSheet(IDLE_PATH, IDLE_FRAME_W, IDLE_FRAME_H, 0.18f);
 
         playerPanel = new PlayerPanel(player, idleSprite);
 
         mainTilesTex = new Texture(Gdx.files.internal("ui/main_tiles.png"));
         panelPatch   = buildPanelPatch(mainTilesTex);
-        treeTex2     = new Texture(Gdx.files.internal("tiles/overworld/trees/Trees_shadow/Tree1.png"));
-        treeTex3     = new Texture(Gdx.files.internal("tiles/overworld/trees/Trees_shadow/Moss_tree1.png"));
+        // Variantes de árbol (probá cambiar/agregar nombres de tiles/overworld/trees/Trees_shadow/)
+        String[] treeFiles = {
+            "Tree1.png", "Moss_tree1.png", "Fruit_tree1.png", "Flower_tree1.png",
+        };
+        treeTexs = new Texture[treeFiles.length];
+        for (int i = 0; i < treeFiles.length; i++)
+            treeTexs[i] = new Texture(Gdx.files.internal("tiles/overworld/trees/Trees_shadow/" + treeFiles[i]));
+
+        grassTex     = new Texture(Gdx.files.internal("tiles/overworld/grass.png"));
+        plainsTex    = new Texture(Gdx.files.internal("tiles/overworld/plains.png"));
+        decorTex     = new Texture(Gdx.files.internal("tiles/overworld/decor_16x16.png"));
+        fencesTex    = new Texture(Gdx.files.internal("tiles/overworld/fences.png"));
+        for (Texture t : new Texture[]{ grassTex, plainsTex, decorTex, fencesTex })
+            t.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest);
+
+        grassReg     = new TextureRegion(grassTex);                    // 16×16 completo
+        dirtReg      = new TextureRegion(plainsTex, 32, 16, 16, 16);   // tierra (col 2, fila 1)
+        rockReg      = new TextureRegion(decorTex,  32, 64, 16, 16);   // roca  (col 2, fila 4)
+        hFenceReg    = new TextureRegion(fencesTex, 32,  0, 16, 16);   // cerca horizontal (col 2, fila 0)
+        postReg      = new TextureRegion(fencesTex,  0,  0, 16, 16);   // poste (col 0, fila 0)
 
         Gdx.input.setInputProcessor(new InputAdapter() {
             @Override
@@ -174,7 +207,7 @@ public class OverworldScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        if (isMoving) walkSprite.update(delta);
+        if (isMoving) (isRunning ? runSprite : walkSprite).update(delta);
         idleSprite.update(delta);
         updateMovement(delta);
         handleInput();
@@ -201,15 +234,18 @@ public class OverworldScreen implements Screen {
                     int nc = playerCol + dc;
                     int nr = playerRow + dr;
                     if (nr >= 0 && nr < MAP_ROWS && nc >= 0 && nc < MAP_COLS && isPassable(MAP.get(nc, nr))) {
-                        playerCol  = nc;
-                        playerRow  = nr;
-                        startVisX  = visualX;
-                        startVisY  = visualY;
-                        targetX    = nc * TILE - TILE;
-                        targetY    = worldTileY(nr) - TILE;
-                        moveTimer  = 0f;
-                        isMoving   = true;
-                        walkSprite.reset();
+                        boolean run = Gdx.input.isKeyPressed(Keys.SHIFT_LEFT)
+                                   || Gdx.input.isKeyPressed(Keys.SHIFT_RIGHT);
+                        playerCol    = nc;
+                        playerRow    = nr;
+                        startVisX    = visualX;
+                        startVisY    = visualY;
+                        targetX      = nc * TILE - TILE;
+                        targetY      = worldTileY(nr) - TILE;
+                        moveTimer    = 0f;
+                        isMoving     = true;
+                        isRunning    = run;
+                        moveDuration = run ? RUN_STEP : WALK_STEP;
                     }
                 }
             }
@@ -313,7 +349,7 @@ public class OverworldScreen implements Screen {
     private void updateMovement(float delta) {
         if (!isMoving) return;
         moveTimer += delta;
-        float p = Math.min(1f, moveTimer / MOVE_DURATION);
+        float p = Math.min(1f, moveTimer / moveDuration);
         visualX = startVisX + (targetX - startVisX) * p;
         visualY = startVisY + (targetY - startVisY) * p;
         if (p >= 1f) {
@@ -378,7 +414,9 @@ public class OverworldScreen implements Screen {
         HdpiUtils.glViewport(0, STATUS_H, VIEW_W, VIEW_H);
         shapes.setProjectionMatrix(worldCam.combined);
         batch.setProjectionMatrix(worldCam.combined);
-        drawMap();
+        drawTerrain();           // texturas de pasto/tierra (batch)
+        drawWaterInn();          // agua + posada (shapes) sobre la base
+        drawFences();            // cerca del borde (batch)
         drawTreeSprites(true);   // árboles al norte del jugador (detrás)
         drawPlayer();
         drawTreeSprites(false);  // árboles al sur del jugador (adelante)
@@ -432,39 +470,45 @@ public class OverworldScreen implements Screen {
 
     private static int clampInt(int v, int lo, int hi) { return Math.max(lo, Math.min(hi, v)); }
 
-    private void drawMap() {
+    // Base de terreno con texturas (pasto/tierra), dibujada a 2× (16→32px).
+    // El agua se omite acá: la pinta drawWaterInn por encima.
+    private void drawTerrain() {
+        batch.begin();
+        for (int r = visR0; r <= visR1; r++) {
+            for (int c = visC0; c <= visC1; c++) {
+                int t = MAP.get(c, r);
+                if (t == WATER) continue;
+                TextureRegion reg = (t == PATH || t == INN) ? dirtReg : grassReg;
+                batch.draw(reg, c * TILE, worldTileY(r), TILE, TILE);
+            }
+        }
+        batch.end();
+    }
+
+    // Agua y posada con ShapeRenderer, sobre la base de terreno.
+    private void drawWaterInn() {
         shapes.begin(ShapeRenderer.ShapeType.Filled);
         for (int r = visR0; r <= visR1; r++) {
             for (int c = visC0; c <= visC1; c++) {
                 int tile = MAP.get(c, r);
-                int tx   = c * TILE;
-                int ty   = worldTileY(r);
+                if (tile != WATER && tile != INN) continue;
+                int tx = c * TILE;
+                int ty = worldTileY(r);
 
-                // Base tile
-                shapes.setColor(TILE_COLOR[tile]);
-                shapes.rect(tx, ty, TILE, TILE);
-
-                // Borde inferior y derecho (profundidad)
-                shapes.setColor(TILE_SHADOW[tile]);
-                shapes.rect(tx,              ty,          TILE, 1);
-                shapes.rect(tx + TILE - 1,   ty,          1,    TILE);
-
-                // Detalles por tipo
                 if (tile == WATER) {
+                    shapes.setColor(TILE_COLOR[WATER]);
+                    shapes.rect(tx, ty, TILE, TILE);
                     shapes.setColor(0.45f, 0.68f, 0.92f, 1);
                     shapes.rect(tx + 3, ty + TILE / 2 - 2, TILE - 6, 4);
-                } else if (tile == INN) {
-                    // Techo rojizo
+                } else {  // INN
                     shapes.setColor(0.65f, 0.22f, 0.18f, 1);
                     shapes.rect(tx + 2, ty + TILE - 8, TILE - 4, 7);
-                    // Puerta (solo en la fila inferior del bloque INN = row 2)
                     if (r == INN_ROW) {
                         shapes.setColor(0.35f, 0.20f, 0.08f, 1);
                         shapes.rect(tx + 11, ty + 2, 10, 14);
                     } else {
-                        // Ventana
                         shapes.setColor(0.90f, 0.85f, 0.50f, 1);
-                        shapes.rect(tx + 7, ty + 8, 8, 7);
+                        shapes.rect(tx + 7,  ty + 8, 8, 7);
                         shapes.rect(tx + 18, ty + 8, 8, 7);
                     }
                 }
@@ -475,17 +519,19 @@ public class OverworldScreen implements Screen {
 
     private void drawPlayer() {
         int size = TILE * 3;
+        // En movimiento: caminar/correr según Shift. Quieto: idle (mismo sprite del panel).
+        SpriteSheet sprite = isMoving ? (isRunning ? runSprite : walkSprite) : idleSprite;
         batch.begin();
-        walkSprite.draw(batch, facingRow, visualX, visualY, size, size);
+        sprite.draw(batch, facingRow, visualX, visualY, size, size);
         batch.end();
     }
 
     // beforePlayer=true  → árboles en filas <= playerRow (norte/detrás del jugador)
     // beforePlayer=false → árboles en filas >  playerRow (sur/delante del jugador)
     private void drawTreeSprites(boolean beforePlayer) {
-        // Sprites 128×128 (4×TILE) a tamaño nativo; centrados sobre el tile de 32px
-        final int SIZE = TILE * 4;
-        final int XOFF = TILE + TILE / 2;  // (128-32)/2 = 48px para centrar
+        final int TREE_SIZE = TILE * 4;         // árboles 128px (4×TILE)
+        final int TREE_XOFF = TILE + TILE / 2;  // (128-32)/2 = 48px para centrar
+        final int ROCK_SIZE = TILE;             // roca 32px (16→2×), llena el tile
 
         batch.begin();
         for (int r = visR0; r <= visR1; r++) {
@@ -493,13 +539,35 @@ public class OverworldScreen implements Screen {
             if (!inPass) continue;
             for (int c = visC0; c <= visC1; c++) {
                 if (MAP.get(c, r) != TREE) continue;
-                int tx = c * TILE - XOFF;
-                int ty = worldTileY(r);
-                Texture tex = ((r + c) % 2 == 0) ? treeTex2 : treeTex3;
-                batch.draw(tex, tx, ty, SIZE, SIZE);
+                int h = scatterHash(r, c);
+                if (h % 7 == 0) {  // ~1 de cada 7 → roca, para aflojar la densidad
+                    batch.draw(rockReg, c * TILE, worldTileY(r), ROCK_SIZE, ROCK_SIZE);
+                } else {           // resto → variante de árbol
+                    Texture tex = treeTexs[h % treeTexs.length];
+                    batch.draw(tex, c * TILE - TREE_XOFF, worldTileY(r), TREE_SIZE, TREE_SIZE);
+                }
             }
         }
         batch.end();
+    }
+
+    // Cerca del borde (y de cualquier tile 'F'): tramo horizontal arriba/abajo, poste en laterales.
+    private void drawFences() {
+        batch.begin();
+        for (int r = visR0; r <= visR1; r++) {
+            for (int c = visC0; c <= visC1; c++) {
+                if (MAP.get(c, r) != FENCE) continue;
+                boolean horizontal = (r == 0 || r == MAP_ROWS - 1) && c > 0 && c < MAP_COLS - 1;
+                batch.draw(horizontal ? hFenceReg : postReg, c * TILE, worldTileY(r), TILE, TILE);
+            }
+        }
+        batch.end();
+    }
+
+    // Hash determinista por celda (mismo resultado cada frame, sin parpadeo)
+    private static int scatterHash(int r, int c) {
+        int h = (r * 73856093) ^ (c * 19349663);
+        return (h >>> 1) % 1000;
     }
 
     // Coord. de mundo (Y hacia arriba, origen abajo-izquierda del mapa):
@@ -679,10 +747,14 @@ public class OverworldScreen implements Screen {
         font.dispose();
         fontLg.dispose();
         walkSprite.dispose();
+        runSprite.dispose();
         idleSprite.dispose();
         mainTilesTex.dispose();
-        treeTex2.dispose();
-        treeTex3.dispose();
+        for (Texture t : treeTexs) t.dispose();
+        grassTex.dispose();
+        plainsTex.dispose();
+        decorTex.dispose();
+        fencesTex.dispose();
         playerPanel.dispose();
     }
 }

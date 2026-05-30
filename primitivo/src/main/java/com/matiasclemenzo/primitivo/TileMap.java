@@ -16,12 +16,13 @@ import java.util.List;
 // se fuerza a árboles, cerrando el mapa.
 class TileMap {
 
-    // Tipos de tile — mismos índices que las paletas de color de OverworldScreen
+    // Tipos de tile — mismos índices que en OverworldScreen
     static final int PATH  = 0;
     static final int GRASS = 1;
     static final int TREE  = 2;
     static final int WATER = 3;
     static final int INN   = 4;
+    static final int FENCE = 5;
 
     final int rows;
     final int cols;
@@ -49,9 +50,9 @@ class TileMap {
                 tiles[r][c] = (c < row.length) ? row[c] : PATH;
             }
         }
-        // Borde de árboles cerrando el mapa
-        for (int r = 0; r < rows; r++) { tiles[r][0] = TREE; tiles[r][cols - 1] = TREE; }
-        for (int c = 0; c < cols; c++) { tiles[0][c] = TREE; tiles[rows - 1][c] = TREE; }
+        // Borde de cerca (fence) cerrando el mapa
+        for (int r = 0; r < rows; r++) { tiles[r][0] = FENCE; tiles[r][cols - 1] = FENCE; }
+        for (int c = 0; c < cols; c++) { tiles[0][c] = FENCE; tiles[rows - 1][c] = FENCE; }
     }
 
     private static int[] parseRow(String line) {
@@ -75,6 +76,7 @@ class TileMap {
             case 'T': case 't': return TREE;
             case 'W': case 'w': return WATER;
             case 'I': case 'i': return INN;
+            case 'F': case 'f': return FENCE;
             default:
                 if (ch >= '0' && ch <= '9') return ch - '0';
                 return PATH;  // '.', espacio, cualquier otro
